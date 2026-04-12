@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grade 8 Tutor App — Design Document</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1814;
+    --ink-2: #3d3830;
+    --ink-3: #6b6459;
+    --ink-4: #9c9488;
+    --paper: #faf8f4;
+    --paper-2: #f2ede4;
+    --paper-3: #e8e0d3;
+    --gold: #c8922a;
+    --gold-light: #f0d080;
+    --teal: #1a7a6e;
+    --teal-light: #e0f2ef;
+    --crimson: #8b2635;
+    --crimson-light: #f5e8ea;
+    --cobalt: #1a3d7a;
+    --cobalt-light: #e8edf8;
+    --sage: #3d6b45;
+    --sage-light: #e6f0e8;
+    --rule: #d4cdc2;
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ── COVER ── */
+  .cover {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 80px 64px 72px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 480px; height: 480px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200,146,42,0.18) 0%, transparent 70%);
+    transform: translate(30%, -30%);
+  }
+  .cover-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--gold-light);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0.8;
+  }
+  .cover h1 {
+    font-family: var(--serif);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+  .cover h1 span { color: var(--gold-light); }
+  .cover-sub {
+    font-size: 18px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 48px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 48px;
+    border-top: 0.5px solid rgba(255,255,255,0.15);
+    padding-top: 28px;
+  }
+  .cover-meta-item label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+    font-family: var(--mono);
+  }
+  .cover-meta-item span {
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* ── LAYOUT ── */
+  .doc { max-width: 960px; margin: 0 auto; }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+    padding: 40px 64px;
+  }
+  .toc h2 {
+    font-family: var(--serif);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    margin-bottom: 20px;
+    font-weight: 400;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px 32px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 0.5px solid var(--rule);
+    text-decoration: none;
+    color: var(--ink-2);
+    font-size: 13px;
+    transition: color 0.15s;
+  }
+  .toc-item:hover { color: var(--gold); }
+  .toc-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    min-width: 20px;
+  }
+
+  /* ── SECTIONS ── */
+  .section {
+    padding: 56px 64px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .section:last-child { border-bottom: none; }
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  .section-label::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.6;
+  }
+  .section > h2 {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 20px;
+    color: var(--ink);
+  }
+  .lead {
+    font-size: 16px;
+    color: var(--ink-2);
+    line-height: 1.8;
+    max-width: 680px;
+    margin-bottom: 36px;
+  }
+
+  /* ── CALLOUT BOX ── */
+  .callout {
+    background: var(--cobalt-light);
+    border-left: 3px solid var(--cobalt);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 24px 0;
+    font-size: 14px;
+    color: var(--cobalt);
+  }
+  .callout strong { display: block; margin-bottom: 4px; font-weight: 600; }
+
+  /* ── SUBJECT GRID ── */
+  .subject-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin: 28px 0;
+  }
+  .subject-card {
+    background: var(--paper-2);
+    border: 0.5px solid var(--rule);
+    border-radius: 10px;
+    padding: 16px 14px;
+    text-align: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .subject-card:hover {
+    border-color: var(--gold);
+    box-shadow: 0 2px 12px rgba(200,146,42,0.12);
+  }
+  .subject-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    margin: 0 auto 10px;
+  }
+  .subject-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    line-height: 1.3;
+  }
+  .subject-code {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    margin-top: 3px;
+  }
+
+  /* subject colors */
+  .s-biz  { background: #fff3e0; } .s-biz  .subject-icon { background: #fff3e0; color: #bf6f00; }
+  .s-eco  { background: #e8f5e9; } .s-eco  .subject-icon { background: #e8f5e9; color: #2e7d32; }
+  .s-soc  { background: #e3f2fd; } .s-soc  .subject-icon { background: #e3f2fd; color: #1565c0; }
+  .s-mat  { background: #f3e5f5; } .s-mat  .subject-icon { background: #f3e5f5; color: #7b1fa2; }
+  .s-bio  { background: #e8f5e9; } .s-bio  .subject-icon { background: #e8f5e9; color: #1b5e20; }
+  .s-phy  { background: #e8eaf6; } .s-phy  .subject-icon { background: #e8eaf6; color: #283593; }
+  .s-che  { background: #fce4ec; } .s-che  .subject-icon { background: #fce4ec; color: #880e4f; }
+  .s-eng  { background: #fff8e1; } .s-eng  .subject-icon { background: #fff8e1; color: #f57f17; }
+  .s-acc  { background: #e0f7fa; } .s-acc  .subject-icon { background: #e0f7fa; color: #006064; }
+  .s-hpe  { background: #f1f8e9; } .s-hpe  .subject-icon { background: #f1f8e9; color: #33691e; }
+
+  /* ── MATERIALS TABLE ── */
+  .table-wrapper {
+    border: 0.5px solid var(--rule);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 28px 0;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--ink); }
+  thead th {
+    padding: 14px 18px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    font-weight: 400;
+  }
+  tbody tr { border-bottom: 0.5px solid var(--rule); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: var(--paper-2); }
+  tbody td {
+    padding: 13px 18px;
+    font-size: 14px;
+    vertical-align: top;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--mono);
+  }
+  .badge-teal   { background: var(--teal-light);    color: var(--teal); }
+  .badge-gold   { background: #fef3d0;              color: #8a6200; }
+  .badge-cobalt { background: var(--cobalt-light);  color: var(--cobalt); }
+  .badge-red    { background: var(--crimson-light); color: var(--crimson); }
+  .badge-sage   { background: var(--sage-light);    color: var(--sage); }
+
+  /* ── SESSION STAGE DIAGRAM ── */
+  .stages {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin: 28px 0;
+    border: 0.5px solid var(--rule);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .stage {
+    padding: 20px 16px;
+    border-right: 0.5px solid var(--rule);
+    position: relative;
+  }
+  .stage:last-child { border-right: none; }
+  .stage-num {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 500;
+    opacity: 0.12;
+    position: absolute;
+    top: 12px; right: 14px;
+    line-height: 1;
+  }
+  .stage-icon { font-size: 20px; margin-bottom: 10px; }
+  .stage-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .stage-desc {
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.5;
+  }
+  .stage-time {
+    display: inline-block;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--gold);
+    border: 0.5px solid var(--gold);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .stage-1 { background: #fffdf8; }
+  .stage-2 { background: #f8fcff; }
+  .stage-3 { background: #f8fff9; }
+  .stage-4 { background: #fff8fa; }
+  .stage-5 { background: #fdfbff; }
+
+  /* ── ACCOUNTS ── */
+  .accounts-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin: 28px 0;
+  }
+  .account-card {
+    border: 0.5px solid var(--rule);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .account-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 0.5px solid var(--rule);
+  }
+  .account-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .account-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .account-role {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .account-body { padding: 14px 16px; }
+  .account-body ul {
+    list-style: none;
+    font-size: 12px;
+    color: var(--ink-3);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .account-body li::before { content: '→  '; color: var(--ink-4); }
+
+  .acc-admin   .account-avatar { background: var(--ink);          color: var(--paper); }
+  .acc-s1      .account-avatar { background: var(--cobalt-light); color: var(--cobalt); }
+  .acc-s2      .account-avatar { background: var(--teal-light);   color: var(--teal); }
+  .acc-test    .account-avatar { background: #fef3d0;             color: #8a6200; }
+  .acc-admin   .account-header { background: #f5f4f2; }
+  .acc-s1      .account-header { background: var(--cobalt-light); }
+  .acc-s2      .account-header { background: var(--teal-light); }
+  .acc-test    .account-header { background: #fffbe8; }
+
+  /* ── CONTENT TYPES ── */
+  .content-types {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 28px 0;
+  }
+  .content-type-card {
+    border: 0.5px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .ct-icon {
+    width: 42px; height: 42px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .ct-title { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .ct-desc  { font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+  .ct-format {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    margin-top: 6px;
+  }
+
+  /* ── DATA MODEL ── */
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 28px 0;
+  }
+  .data-entity {
+    border: 0.5px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .data-entity-head {
+    background: var(--ink);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .data-entity-head span {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: #fff;
+    font-weight: 500;
+  }
+  .data-entity-head em {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    font-style: normal;
+  }
+  .data-fields { }
+  .data-field {
+    display: grid;
+    grid-template-columns: 130px 1fr 80px;
+    gap: 8px;
+    padding: 9px 16px;
+    border-bottom: 0.5px solid var(--rule);
+    font-size: 12px;
+    align-items: center;
+  }
+  .data-field:last-child { border-bottom: none; }
+  .data-field:nth-child(even) { background: var(--paper-2); }
+  .field-name { font-family: var(--mono); color: var(--ink-2); }
+  .field-type { color: var(--ink-4); font-size: 11px; }
+  .field-key {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .pk { color: var(--gold); }
+  .fk { color: var(--cobalt); }
+
+  /* ── TECH STACK ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 28px 0;
+  }
+  .stack-card {
+    border: 0.5px solid var(--rule);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .stack-layer {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    margin-bottom: 8px;
+  }
+  .stack-item { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .stack-detail { font-size: 12px; color: var(--ink-3); }
+
+  /* ── ROADMAP ── */
+  .roadmap {
+    margin: 28px 0;
+    border-left: 2px solid var(--rule);
+    padding-left: 28px;
+  }
+  .roadmap-phase {
+    position: relative;
+    margin-bottom: 32px;
+  }
+  .roadmap-phase:last-child { margin-bottom: 0; }
+  .roadmap-phase::before {
+    content: '';
+    position: absolute;
+    left: -36px;
+    top: 6px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--paper);
+  }
+  .phase-1::before { background: var(--cobalt); }
+  .phase-2::before { background: var(--teal); }
+  .phase-3::before { background: var(--gold); }
+  .phase-4::before { background: var(--sage); }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .phase-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .phase-1 .phase-tag { background: var(--cobalt-light); color: var(--cobalt); }
+  .phase-2 .phase-tag { background: var(--teal-light);   color: var(--teal); }
+  .phase-3 .phase-tag { background: #fef3d0;             color: #8a6200; }
+  .phase-4 .phase-tag { background: var(--sage-light);   color: var(--sage); }
+
+  .phase-title { font-size: 16px; font-weight: 600; color: var(--ink); }
+  .phase-duration { font-size: 12px; color: var(--ink-4); margin-left: auto; font-family: var(--mono); }
+
+  .phase-tasks {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .phase-task {
+    background: var(--paper-2);
+    border: 0.5px solid var(--rule);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--ink-2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .phase-task::before { content: '☐'; color: var(--ink-4); font-size: 12px; }
+
+  /* ── PERMISSIONS ── */
+  .perm-table {
+    border: 0.5px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 28px 0;
+  }
+  .perm-table table th:first-child,
+  .perm-table table td:first-child {
+    border-right: 0.5px solid var(--rule);
+  }
+  .check-y { color: var(--teal); font-size: 14px; }
+  .check-n { color: var(--rule); font-size: 14px; }
+  .check-p { color: var(--gold); font-size: 14px; }
+
+  /* ── SCORING ── */
+  .scoring-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin: 28px 0;
+  }
+  .score-card {
+    border: 0.5px solid var(--rule);
+    border-radius: 10px;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .score-val {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .score-label { font-size: 12px; color: var(--ink-3); }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--paper-3);
+    border-top: 1px solid var(--rule);
+    padding: 28px 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .footer-brand {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .footer-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-4);
+  }
+
+  /* ── INLINE CODE ── */
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--paper-3);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--crimson);
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-tag">Product Design Document · v1.0</div>
+  <h1>Grade 8<br><span>Tutor App</span></h1>
+  <div class="cover-sub">Personalised revision platform for secondary school students</div>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <label>Document Type</label>
+      <span>System Design Specification</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Target Users</label>
+      <span>1 Admin · 2 Students · 1 Test Account</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Subjects</label>
+      <span>10 Subjects · 5 Material Types</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Status</label>
+      <span>Design Phase</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h2>Contents</h2>
+  <div class="toc-grid">
+    <a href="#overview"    class="toc-item"><span class="toc-num">01</span>Overview &amp; Goals</a>
+    <a href="#subjects"    class="toc-item"><span class="toc-num">02</span>Subjects</a>
+    <a href="#materials"   class="toc-item"><span class="toc-num">03</span>Learning Materials</a>
+    <a href="#sessions"    class="toc-item"><span class="toc-num">04</span>Study Session Flow</a>
+    <a href="#assessment"  class="toc-item"><span class="toc-num">05</span>Assessment Types</a>
+    <a href="#accounts"    class="toc-item"><span class="toc-num">06</span>User Accounts</a>
+    <a href="#permissions" class="toc-item"><span class="toc-num">07</span>Permissions Matrix</a>
+    <a href="#datamodel"   class="toc-item"><span class="toc-num">08</span>Data Model</a>
+    <a href="#scoring"     class="toc-item"><span class="toc-num">09</span>Progress &amp; Scoring</a>
+    <a href="#techstack"   class="toc-item"><span class="toc-num">10</span>Tech Stack</a>
+    <a href="#roadmap"     class="toc-item"><span class="toc-num">11</span>Roadmap</a>
+    <a href="#ux"          class="toc-item"><span class="toc-num">12</span>UX Principles</a>
+  </div>
+</div>
+
+<!-- 01 OVERVIEW -->
+<div class="section" id="overview">
+  <div class="section-label">01 · Overview</div>
+  <h2>Overview &amp; Goals</h2>
+  <p class="lead">A focused revision platform that mirrors the school curriculum for a Grade 8 student. Each study session moves through structured stages — from passive content consumption to active recall — building durable understanding rather than surface familiarity.</p>
+
+  <div class="callout">
+    <strong>Core Design Principle</strong>
+    Every session follows the same spine: introduce → explore → recall → test → reflect. Materials are uploaded by the admin and organised by subject and topic. Students work through stages at their own pace; progress is tracked and visible on a dashboard.
+  </div>
+
+  <p style="color:var(--ink-3); font-size:14px; line-height:1.8; max-width:680px">
+    The platform is intentionally small — one admin (parent or guardian), two students, and one test account — keeping it lightweight, private, and easy to manage without a backend team. All uploaded materials (slides, podcasts, guides, mind maps, infographics) live in a structured content library organised by subject and topic unit. Questions — multiple choice and flashcards — are attached to topics and surfaced during the practice stages of each session.
+  </p>
+</div>
+
+<!-- 02 SUBJECTS -->
+<div class="section" id="subjects">
+  <div class="section-label">02 · Subjects</div>
+  <h2>Subjects</h2>
+  <p class="lead">Ten subjects aligned to the Grade 8 school curriculum. Each subject is subdivided into topic units set by the admin.</p>
+
+  <div class="subject-grid">
+    <div class="subject-card s-biz">
+      <div class="subject-icon">📊</div>
+      <div class="subject-name">Business Studies</div>
+      <div class="subject-code">BIZ</div>
+    </div>
+    <div class="subject-card s-eco">
+      <div class="subject-icon">📈</div>
+      <div class="subject-name">Economics</div>
+      <div class="subject-code">ECO</div>
+    </div>
+    <div class="subject-card s-soc">
+      <div class="subject-icon">🌍</div>
+      <div class="subject-name">Social Studies</div>
+      <div class="subject-code">SOC</div>
+    </div>
+    <div class="subject-card s-mat">
+      <div class="subject-icon">∑</div>
+      <div class="subject-name">Mathematics</div>
+      <div class="subject-code">MAT</div>
+    </div>
+    <div class="subject-card s-bio">
+      <div class="subject-icon">🧬</div>
+      <div class="subject-name">Biology</div>
+      <div class="subject-code">BIO</div>
+    </div>
+    <div class="subject-card s-phy">
+      <div class="subject-icon">⚛</div>
+      <div class="subject-name">Physics</div>
+      <div class="subject-code">PHY</div>
+    </div>
+    <div class="subject-card s-che">
+      <div class="subject-icon">⚗</div>
+      <div class="subject-name">Chemistry</div>
+      <div class="subject-code">CHE</div>
+    </div>
+    <div class="subject-card s-eng">
+      <div class="subject-icon">📖</div>
+      <div class="subject-name">English</div>
+      <div class="subject-code">ENG</div>
+    </div>
+    <div class="subject-card s-acc">
+      <div class="subject-icon">💰</div>
+      <div class="subject-name">Accounting</div>
+      <div class="subject-code">ACC</div>
+    </div>
+    <div class="subject-card s-hpe">
+      <div class="subject-icon">🏃</div>
+      <div class="subject-name">Health &amp; PE</div>
+      <div class="subject-code">HPE</div>
+    </div>
+  </div>
+
+  <p style="color:var(--ink-3); font-size:13px">Each subject is divided into <strong>Topic Units</strong> created by the admin — for example, Biology → "Cell Division", "Photosynthesis", "Respiration". Each topic unit can hold all five material types and its own question bank.</p>
+</div>
+
+<!-- 03 MATERIALS -->
+<div class="section" id="materials">
+  <div class="section-label">03 · Learning Materials</div>
+  <h2>Learning Materials</h2>
+  <p class="lead">Five content types can be uploaded per topic. The admin uploads source files; the platform stores and serves them to students in the appropriate viewer.</p>
+
+  <div class="content-types">
+    <div class="content-type-card">
+      <div class="ct-icon" style="background:#fff3e0">🖥️</div>
+      <div>
+        <div class="ct-title">Slideshows</div>
+        <div class="ct-desc">PowerPoint or PDF presentation slides exported from school lessons. Displayed in a built-in slide viewer with forward/back navigation and fullscreen mode.</div>
+        <div class="ct-format">Formats: .pptx · .pdf · .key</div>
+      </div>
+    </div>
+    <div class="content-type-card">
+      <div class="ct-icon" style="background:#e3f2fd">🎧</div>
+      <div>
+        <div class="ct-title">Podcasts / Audio</div>
+        <div class="ct-desc">Recorded lesson summaries, teacher narrations, or curated educational podcasts. Played with a simple audio player supporting speed control (0.75×–2×) and timestamps.</div>
+        <div class="ct-format">Formats: .mp3 · .m4a · .wav</div>
+      </div>
+    </div>
+    <div class="content-type-card">
+      <div class="ct-icon" style="background:#f3e5f5">📋</div>
+      <div>
+        <div class="ct-title">Study Guide Q&amp;A</div>
+        <div class="ct-desc">Structured question-and-answer documents covering key concepts. Displayed as a collapsible accordion — student reads the question, then reveals the answer to self-check.</div>
+        <div class="ct-format">Formats: .pdf · .docx · structured text</div>
+      </div>
+    </div>
+    <div class="content-type-card">
+      <div class="ct-icon" style="background:#e8f5e9">🗺️</div>
+      <div>
+        <div class="ct-title">Mind Maps</div>
+        <div class="ct-desc">Visual concept maps showing relationships between ideas. Rendered as zoomable, pannable images. Can be exported from any mind-mapping tool and uploaded as an image.</div>
+        <div class="ct-format">Formats: .png · .svg · .pdf</div>
+      </div>
+    </div>
+    <div class="content-type-card">
+      <div class="ct-icon" style="background:#fce4ec">📊</div>
+      <div>
+        <div class="ct-title">Infographics</div>
+        <div class="ct-desc">Visual summaries of topics — timelines, diagrams, process charts, comparison tables. Displayed in a full-width image viewer with optional pinch-to-zoom on mobile.</div>
+        <div class="ct-format">Formats: .png · .jpg · .svg · .pdf</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Material Type</th>
+          <th>Purpose in Session</th>
+          <th>Stage</th>
+          <th>Admin Upload</th>
+          <th>Student Access</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Slideshow</strong></td>
+          <td>Introduce topic content from school lessons</td>
+          <td><span class="badge badge-cobalt">Stage 1</span></td>
+          <td>File upload</td>
+          <td>Slide viewer</td>
+        </tr>
+        <tr>
+          <td><strong>Podcast</strong></td>
+          <td>Reinforce learning via audio narration</td>
+          <td><span class="badge badge-cobalt">Stage 1–2</span></td>
+          <td>File upload</td>
+          <td>Audio player</td>
+        </tr>
+        <tr>
+          <td><strong>Study Guide Q&amp;A</strong></td>
+          <td>Structured self-check against key facts</td>
+          <td><span class="badge badge-teal">Stage 2–3</span></td>
+          <td>File upload</td>
+          <td>Accordion viewer</td>
+        </tr>
+        <tr>
+          <td><strong>Mind Map</strong></td>
+          <td>Visual overview of concept relationships</td>
+          <td><span class="badge badge-teal">Stage 2</span></td>
+          <td>File upload</td>
+          <td>Zoomable image</td>
+        </tr>
+        <tr>
+          <td><strong>Infographic</strong></td>
+          <td>Summary visual for quick revision</td>
+          <td><span class="badge badge-sage">Stage 3–4</span></td>
+          <td>File upload</td>
+          <td>Full-width viewer</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 04 SESSIONS -->
+<div class="section" id="sessions">
+  <div class="section-label">04 · Study Sessions</div>
+  <h2>Study Session Flow</h2>
+  <p class="lead">Every topic follows a five-stage session structure. Stages are sequential — completing one unlocks the next. Students cannot skip ahead but may revisit earlier stages at any time.</p>
+
+  <div class="stages">
+    <div class="stage stage-1">
+      <div class="stage-num">1</div>
+      <div class="stage-icon">🎬</div>
+      <div class="stage-title">Introduce</div>
+      <div class="stage-desc">Watch the slideshow and listen to the podcast. Passive intake of new material from school lessons.</div>
+      <div class="stage-time">~15 min</div>
+    </div>
+    <div class="stage stage-2">
+      <div class="stage-num">2</div>
+      <div class="stage-icon">🗺️</div>
+      <div class="stage-title">Explore</div>
+      <div class="stage-desc">Study the mind map and work through the Study Guide Q&amp;A with answers hidden. Build the concept structure.</div>
+      <div class="stage-time">~10 min</div>
+    </div>
+    <div class="stage stage-3">
+      <div class="stage-num">3</div>
+      <div class="stage-icon">🧠</div>
+      <div class="stage-title">Recall</div>
+      <div class="stage-desc">Flashcard practice. Cards are shown front-first; student self-rates recall as Easy, Medium or Hard, feeding the spaced-repetition queue.</div>
+      <div class="stage-time">~10 min</div>
+    </div>
+    <div class="stage stage-4">
+      <div class="stage-num">4</div>
+      <div class="stage-icon">✅</div>
+      <div class="stage-title">Test</div>
+      <div class="stage-desc">Multiple-choice quiz with 10–20 questions. Randomised order. Immediate feedback after each answer. Score recorded.</div>
+      <div class="stage-time">~10 min</div>
+    </div>
+    <div class="stage stage-5">
+      <div class="stage-num">5</div>
+      <div class="stage-icon">📊</div>
+      <div class="stage-title">Review</div>
+      <div class="stage-desc">Session summary: quiz score, flashcard performance, time spent, and suggested next topic or retry recommendation.</div>
+      <div class="stage-time">~3 min</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Spaced Repetition Logic</strong>
+    Flashcards rated "Hard" are shown again within the same session. Cards rated "Medium" reappear in the next session on that topic. Cards rated "Easy" are scheduled further out. This is managed per-student and per-card.
+  </div>
+
+  <p style="color:var(--ink-3); font-size:14px; line-height:1.8; max-width:680px; margin-top:16px">
+    The admin can configure which materials are active for each stage and whether stages require a minimum score to unlock the next (e.g. must score ≥ 60% on the quiz before Stage 5 is available). This gate is optional and toggled per subject.
+  </p>
+</div>
+
+<!-- 05 ASSESSMENT -->
+<div class="section" id="assessment">
+  <div class="section-label">05 · Assessment</div>
+  <h2>Assessment Types</h2>
+  <p class="lead">Two question formats are used: multiple-choice quizzes for scored testing and flashcards for self-directed recall practice.</p>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Multiple Choice Quiz</th>
+          <th>Flashcards</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Session stage</strong></td>
+          <td>Stage 4 — Test</td>
+          <td>Stage 3 — Recall</td>
+        </tr>
+        <tr>
+          <td><strong>Question format</strong></td>
+          <td>Question + 4 answer options (one correct)</td>
+          <td>Front (prompt) + Back (answer/explanation)</td>
+        </tr>
+        <tr>
+          <td><strong>Feedback</strong></td>
+          <td>Immediate — correct/incorrect + explanation shown</td>
+          <td>Student self-rates: Easy / Medium / Hard</td>
+        </tr>
+        <tr>
+          <td><strong>Score</strong></td>
+          <td>% correct, stored per attempt</td>
+          <td>No numeric score; affects spaced repetition schedule</td>
+        </tr>
+        <tr>
+          <td><strong>Question count</strong></td>
+          <td>10–20 per topic (admin-set)</td>
+          <td>All cards in deck; repeats for "Hard" cards</td>
+        </tr>
+        <tr>
+          <td><strong>Randomisation</strong></td>
+          <td>Question order and answer order randomised each attempt</td>
+          <td>Card order randomised each session</td>
+        </tr>
+        <tr>
+          <td><strong>Admin authoring</strong></td>
+          <td>Question, 4 options, correct answer, optional explanation</td>
+          <td>Front text, back text, optional image on either side</td>
+        </tr>
+        <tr>
+          <td><strong>Image support</strong></td>
+          <td>Optional image in question stem</td>
+          <td>Optional image on front or back</td>
+        </tr>
+        <tr>
+          <td><strong>Retry</strong></td>
+          <td>Unlimited retries; all attempts tracked</td>
+          <td>Continuous practice; no retry concept</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 06 ACCOUNTS -->
+<div class="section" id="accounts">
+  <div class="section-label">06 · User Accounts</div>
+  <h2>User Accounts</h2>
+  <p class="lead">Four accounts in total. The admin controls all content and settings. Students have individual progress tracking. The test account is used for verifying content before publishing.</p>
+
+  <div class="accounts-grid">
+    <div class="account-card acc-admin">
+      <div class="account-header">
+        <div class="account-avatar">AD</div>
+        <div>
+          <div class="account-name">Admin</div>
+          <div class="account-role">Administrator</div>
+        </div>
+      </div>
+      <div class="account-body">
+        <ul>
+          <li>Upload &amp; manage all materials</li>
+          <li>Create/edit subjects &amp; topics</li>
+          <li>Author quiz questions &amp; flashcards</li>
+          <li>View all students' progress</li>
+          <li>Configure session gates &amp; settings</li>
+          <li>Manage user accounts</li>
+          <li>Publish or unpublish content</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="account-card acc-s1">
+      <div class="account-header">
+        <div class="account-avatar">S1</div>
+        <div>
+          <div class="account-name">Student 1</div>
+          <div class="account-role">Student</div>
+        </div>
+      </div>
+      <div class="account-body">
+        <ul>
+          <li>View assigned subjects &amp; topics</li>
+          <li>Work through study sessions</li>
+          <li>Complete quizzes &amp; flashcards</li>
+          <li>View own progress dashboard</li>
+          <li>Cannot see Student 2's data</li>
+          <li>Cannot modify any content</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="account-card acc-s2">
+      <div class="account-header">
+        <div class="account-avatar">S2</div>
+        <div>
+          <div class="account-name">Student 2</div>
+          <div class="account-role">Student</div>
+        </div>
+      </div>
+      <div class="account-body">
+        <ul>
+          <li>View assigned subjects &amp; topics</li>
+          <li>Work through study sessions</li>
+          <li>Complete quizzes &amp; flashcards</li>
+          <li>View own progress dashboard</li>
+          <li>Cannot see Student 1's data</li>
+          <li>Cannot modify any content</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="account-card acc-test">
+      <div class="account-header">
+        <div class="account-avatar">T</div>
+        <div>
+          <div class="account-name">Test Account</div>
+          <div class="account-role">QA / Preview</div>
+        </div>
+      </div>
+      <div class="account-body">
+        <ul>
+          <li>Access all published &amp; draft content</li>
+          <li>Preview sessions before publishing</li>
+          <li>Progress data not counted in reports</li>
+          <li>Can reset own progress freely</li>
+          <li>Used by admin for content QA</li>
+          <li>Clearly labelled in all logs</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <p style="color:var(--ink-3); font-size:13px; margin-top:8px">Account credentials are set by the admin. Passwords are stored hashed. No public registration — accounts are created only by the admin.</p>
+</div>
+
+<!-- 07 PERMISSIONS -->
+<div class="section" id="permissions">
+  <div class="section-label">07 · Permissions</div>
+  <h2>Permissions Matrix</h2>
+  <p class="lead">What each account type can see and do.</p>
+
+  <div class="perm-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>Admin</th>
+          <th>Student 1</th>
+          <th>Student 2</th>
+          <th>Test</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>View subjects &amp; topics</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-y">✓</span></td>
+        </tr>
+        <tr>
+          <td>Start a study session</td>
+          <td><span class="check-p">Preview</span></td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-y">✓</span></td>
+        </tr>
+        <tr>
+          <td>View own progress dashboard</td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-y">✓</span></td>
+        </tr>
+        <tr>
+          <td>View all students' progress</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>Upload materials</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>Create/edit topics</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>Author quiz questions</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>Author flashcards</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>Publish / unpublish content</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>View draft (unpublished) content</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-y">✓</span></td>
+        </tr>
+        <tr>
+          <td>Reset own session progress</td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-y">✓</span></td>
+        </tr>
+        <tr>
+          <td>Reset any student's progress</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>Manage user accounts</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+        <tr>
+          <td>Configure session gates</td>
+          <td><span class="check-y">✓</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+          <td><span class="check-n">–</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="color:var(--ink-4); font-size:12px"><span class="check-p" style="font-size:12px">Preview</span> = admin can enter a preview mode to experience sessions as a student without progress being recorded.</p>
+</div>
+
+<!-- 08 DATA MODEL -->
+<div class="section" id="datamodel">
+  <div class="section-label">08 · Data Model</div>
+  <h2>Data Model</h2>
+  <p class="lead">Core entities and their key fields. Relationships are described below each table group.</p>
+
+  <div class="data-grid">
+    <div class="data-entity">
+      <div class="data-entity-head"><span>users</span><em>Authentication &amp; roles</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">email</span><span class="field-type">string (unique)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">display_name</span><span class="field-type">string</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">role</span><span class="field-type">enum: admin | student | test</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">password_hash</span><span class="field-type">string</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">created_at</span><span class="field-type">timestamp</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">is_active</span><span class="field-type">boolean</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>subjects</span><em>Top-level curriculum areas</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">name</span><span class="field-type">string</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">code</span><span class="field-type">string (3-char)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">color</span><span class="field-type">hex string</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">icon</span><span class="field-type">string (emoji/svg)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">sort_order</span><span class="field-type">integer</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>topics</span><em>Topic units within a subject</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">subject_id</span><span class="field-type">uuid → subjects</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">title</span><span class="field-type">string</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">description</span><span class="field-type">text</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">is_published</span><span class="field-type">boolean</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">sort_order</span><span class="field-type">integer</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">gate_enabled</span><span class="field-type">boolean</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">gate_min_score</span><span class="field-type">integer (0–100)</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>materials</span><em>Uploaded content per topic</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">topic_id</span><span class="field-type">uuid → topics</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">type</span><span class="field-type">enum: slide|audio|guide|mindmap|infographic</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">title</span><span class="field-type">string</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">file_url</span><span class="field-type">string (storage path)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">file_size_bytes</span><span class="field-type">integer</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">session_stage</span><span class="field-type">integer (1–4)</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>questions</span><em>Multiple-choice quiz items</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">topic_id</span><span class="field-type">uuid → topics</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">stem</span><span class="field-type">text</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">image_url</span><span class="field-type">string (nullable)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">options</span><span class="field-type">json array (4 items)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">correct_index</span><span class="field-type">integer (0–3)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">explanation</span><span class="field-type">text (nullable)</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>flashcards</span><em>Recall practice cards</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">topic_id</span><span class="field-type">uuid → topics</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">front_text</span><span class="field-type">text</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">back_text</span><span class="field-type">text</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">front_image_url</span><span class="field-type">string (nullable)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">back_image_url</span><span class="field-type">string (nullable)</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>session_progress</span><em>Student session state per topic</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">user_id</span><span class="field-type">uuid → users</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">topic_id</span><span class="field-type">uuid → topics</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">current_stage</span><span class="field-type">integer (1–5)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">completed_stages</span><span class="field-type">json array</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">last_active_at</span><span class="field-type">timestamp</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">time_spent_secs</span><span class="field-type">integer</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>quiz_attempts</span><em>All quiz attempt records</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">user_id</span><span class="field-type">uuid → users</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">topic_id</span><span class="field-type">uuid → topics</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">score_pct</span><span class="field-type">integer (0–100)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">answers</span><span class="field-type">json (question_id → chosen)</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">attempted_at</span><span class="field-type">timestamp</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">duration_secs</span><span class="field-type">integer</span><span class="field-key"></span></div>
+      </div>
+    </div>
+
+    <div class="data-entity">
+      <div class="data-entity-head"><span>flashcard_ratings</span><em>Spaced repetition data</em></div>
+      <div class="data-fields">
+        <div class="data-field"><span class="field-name">id</span><span class="field-type">uuid</span><span class="field-key pk">PK</span></div>
+        <div class="data-field"><span class="field-name">user_id</span><span class="field-type">uuid → users</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">flashcard_id</span><span class="field-type">uuid → flashcards</span><span class="field-key fk">FK</span></div>
+        <div class="data-field"><span class="field-name">rating</span><span class="field-type">enum: easy | medium | hard</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">rated_at</span><span class="field-type">timestamp</span><span class="field-key"></span></div>
+        <div class="data-field"><span class="field-name">next_due_at</span><span class="field-type">timestamp</span><span class="field-key"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 09 SCORING -->
+<div class="section" id="scoring">
+  <div class="section-label">09 · Progress &amp; Scoring</div>
+  <h2>Progress &amp; Scoring</h2>
+  <p class="lead">Progress is tracked per student, per topic, and per subject. The admin dashboard shows aggregate performance across all students.</p>
+
+  <div class="scoring-grid">
+    <div class="score-card">
+      <div class="score-val">%</div>
+      <div class="score-label">Quiz score per attempt (best score shown on dashboard)</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val">★</div>
+      <div class="score-label">Stars awarded per topic: 1 (started) · 2 (quiz passed) · 3 (all stages done)</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val">🔥</div>
+      <div class="score-label">Study streak: consecutive days with at least one completed session stage</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val">⏱</div>
+      <div class="score-label">Time on task per topic and per subject, shown in student dashboard</div>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Dashboard View</th>
+          <th>Available to</th>
+          <th>Shows</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Student Dashboard</strong></td>
+          <td>Each student (own data only)</td>
+          <td>Topics completed, quiz scores per topic, flashcard due count, streak, time spent</td>
+        </tr>
+        <tr>
+          <td><strong>Admin Overview</strong></td>
+          <td>Admin only</td>
+          <td>All students side-by-side: completion %, average quiz scores, time on task, overdue topics</td>
+        </tr>
+        <tr>
+          <td><strong>Topic Drill-down</strong></td>
+          <td>Admin and the specific student</td>
+          <td>All quiz attempts with scores and dates, flashcard ratings history, stage completion timeline</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 10 TECH STACK -->
+<div class="section" id="techstack">
+  <div class="section-label">10 · Tech Stack</div>
+  <h2>Tech Stack</h2>
+  <p class="lead">Recommended technology choices for a lightweight, self-hostable build. Designed to be run on a single low-cost server or deployed as a managed app.</p>
+
+  <div class="stack-grid">
+    <div class="stack-card">
+      <div class="stack-layer">Frontend</div>
+      <div class="stack-item">Next.js (React)</div>
+      <div class="stack-detail">App Router, server components, TypeScript. Simple responsive UI with Tailwind CSS. Mobile-first — student will use on tablet or phone.</div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-layer">Backend / API</div>
+      <div class="stack-item">Next.js API Routes</div>
+      <div class="stack-detail">Or a small Express/Fastify server. REST API for all data operations. No complex microservices needed for a 4-user app.</div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-layer">Database</div>
+      <div class="stack-item">PostgreSQL</div>
+      <div class="stack-detail">Supabase (managed, free tier) or self-hosted. Simple schema matching the data model above. Prisma ORM recommended.</div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-layer">File Storage</div>
+      <div class="stack-item">Supabase Storage or S3</div>
+      <div class="stack-detail">Stores uploaded slides, audio, images. Signed URLs for secure delivery. Max file size: 100 MB per upload.</div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-layer">Authentication</div>
+      <div class="stack-item">NextAuth.js</div>
+      <div class="stack-detail">Credentials provider (email + password). Session stored in JWT. 4 user accounts, no OAuth needed. Role stored in session token.</div>
+    </div>
+    <div class="stack-card">
+      <div class="stack-layer">Hosting</div>
+      <div class="stack-item">Vercel + Supabase</div>
+      <div class="stack-detail">Free tier sufficient for 4 users. Alternatively: Railway, Render, or a $5/month VPS (DigitalOcean Droplet).</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>No-Code Alternative</strong>
+    If development resources are limited, the same structure can be built in Notion (content library) + Typeform (quizzes) + Airtable (progress tracking). This reduces functionality but allows rapid deployment without code.
+  </div>
+</div>
+
+<!-- 11 ROADMAP -->
+<div class="section" id="roadmap">
+  <div class="section-label">11 · Roadmap</div>
+  <h2>Implementation Roadmap</h2>
+  <p class="lead">Four phases from initial setup to a fully featured platform. Each phase delivers a usable increment.</p>
+
+  <div class="roadmap">
+    <div class="roadmap-phase phase-1">
+      <div class="phase-header">
+        <span class="phase-tag">Phase 1</span>
+        <span class="phase-title">Foundation — Core structure</span>
+        <span class="phase-duration">Weeks 1–2</span>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">Set up project repo &amp; database schema</div>
+        <div class="phase-task">Auth system (login, roles, sessions)</div>
+        <div class="phase-task">Subject &amp; topic CRUD (admin)</div>
+        <div class="phase-task">File upload &amp; storage integration</div>
+        <div class="phase-task">Material viewer (slides, audio, image)</div>
+        <div class="phase-task">Student subject/topic browse view</div>
+      </div>
+    </div>
+
+    <div class="roadmap-phase phase-2">
+      <div class="phase-header">
+        <span class="phase-tag">Phase 2</span>
+        <span class="phase-title">Assessments — Quizzes &amp; flashcards</span>
+        <span class="phase-duration">Weeks 3–4</span>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">Quiz question authoring (admin)</div>
+        <div class="phase-task">Quiz player with feedback</div>
+        <div class="phase-task">Flashcard authoring (admin)</div>
+        <div class="phase-task">Flashcard player with self-rating</div>
+        <div class="phase-task">Quiz attempt recording</div>
+        <div class="phase-task">Flashcard spaced-repetition logic</div>
+      </div>
+    </div>
+
+    <div class="roadmap-phase phase-3">
+      <div class="phase-header">
+        <span class="phase-tag">Phase 3</span>
+        <span class="phase-title">Sessions &amp; Progress — Stage flow</span>
+        <span class="phase-duration">Weeks 5–6</span>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">5-stage session orchestration</div>
+        <div class="phase-task">Stage unlock logic &amp; gates</div>
+        <div class="phase-task">Session progress persistence</div>
+        <div class="phase-task">Student progress dashboard</div>
+        <div class="phase-task">Admin overview dashboard</div>
+        <div class="phase-task">Star rating &amp; streak tracking</div>
+      </div>
+    </div>
+
+    <div class="roadmap-phase phase-4">
+      <div class="phase-header">
+        <span class="phase-tag">Phase 4</span>
+        <span class="phase-title">Polish — UX &amp; content population</span>
+        <span class="phase-duration">Weeks 7–8</span>
+      </div>
+      <div class="phase-tasks">
+        <div class="phase-task">Mobile responsiveness pass</div>
+        <div class="phase-task">Test account QA flow</div>
+        <div class="phase-task">Populate all 10 subjects with content</div>
+        <div class="phase-task">Admin preview mode</div>
+        <div class="phase-task">Dark/light mode toggle</div>
+        <div class="phase-task">User acceptance testing with students</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 12 UX -->
+<div class="section" id="ux">
+  <div class="section-label">12 · UX Principles</div>
+  <h2>UX Principles</h2>
+  <p class="lead">Design decisions guided by the specific context: a Grade 8 student using the app for after-school revision, likely on a tablet or phone.</p>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Principle</th>
+          <th>Implementation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Low friction start</strong></td>
+          <td>Landing on the student home shows today's suggested topic (based on what's overdue or not started). One tap to begin a session — no hunting through menus.</td>
+        </tr>
+        <tr>
+          <td><strong>Progress is always visible</strong></td>
+          <td>Each topic shows a small progress bar (stages 1–5) and a star count. The student always knows where they are and what comes next.</td>
+        </tr>
+        <tr>
+          <td><strong>Positive reinforcement</strong></td>
+          <td>Completing a stage shows a brief celebration animation. Quiz score improvement over last attempt is highlighted. Streak counter is prominent.</td>
+        </tr>
+        <tr>
+          <td><strong>Mobile-first layout</strong></td>
+          <td>All content viewers work on small screens. Slide viewer swipes left/right. Audio player has large touch targets. Flashcards flip on tap.</td>
+        </tr>
+        <tr>
+          <td><strong>No dead ends</strong></td>
+          <td>If a topic has no materials yet, it shows "Coming soon" rather than an error. If a quiz has no questions, Stage 4 is hidden until questions are added.</td>
+        </tr>
+        <tr>
+          <td><strong>Admin efficiency</strong></td>
+          <td>Bulk upload for materials. Copy questions between topics. Duplicate a topic template. All admin actions accessible from a sidebar, not buried in settings.</td>
+        </tr>
+        <tr>
+          <td><strong>Distraction-free study mode</strong></td>
+          <td>Entering a session hides navigation. Only the current stage content and a minimal progress indicator are shown. Exit button is present but not prominent.</td>
+        </tr>
+        <tr>
+          <td><strong>Consistent typography</strong></td>
+          <td>All question text, material titles, and labels use the same readable font at 16px minimum. No small print. High contrast for readability.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:32px; padding:20px; background:var(--paper-2); border-radius:10px; border:0.5px solid var(--rule)">
+    <p style="font-family:var(--mono); font-size:11px; color:var(--ink-4); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:12px">Screen Structure — Student Flow</p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap">
+      <div style="background:var(--paper); border:0.5px solid var(--rule); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink-2)">🏠 Home <span style="color:var(--ink-4)">→</span></div>
+      <div style="background:var(--paper); border:0.5px solid var(--rule); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink-2)">📚 Subject <span style="color:var(--ink-4)">→</span></div>
+      <div style="background:var(--paper); border:0.5px solid var(--rule); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink-2)">📑 Topic <span style="color:var(--ink-4)">→</span></div>
+      <div style="background: var(--cobalt-light); border:0.5px solid var(--cobalt); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--cobalt)">🎬 Session Stage 1–5 <span style="color:var(--ink-4)">→</span></div>
+      <div style="background:var(--paper); border:0.5px solid var(--rule); border-radius:8px; padding:12px 16px; font-size:13px; color:var(--ink-2)">📊 Review Summary</div>
+    </div>
+    <p style="font-size:12px; color:var(--ink-4); margin-top:12px">Admin additionally has: Content Library · Question Bank · User Management · Analytics Dashboard</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-brand">Grade 8 Tutor App · Design Document</div>
+  <div class="footer-meta">v1.0 · Draft · April 2026</div>
+</div>
+
+</div>
+</body>
+</html>

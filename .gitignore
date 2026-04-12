@@ -1,0 +1,7 @@
+uploads/
+data/
+app/.next/
+app/node_modules/
+app/.env.local
+app/.env*.local
+.claude/
