@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Grade 8 Tutor',
+  title: 'ISMSgo',
   description: 'Personalised revision platform for Grade 8 students',
 };
 
