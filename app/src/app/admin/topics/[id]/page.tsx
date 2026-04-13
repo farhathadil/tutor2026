@@ -19,7 +19,7 @@ export default function AdminTopicPage() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [flashcards, setFlashcards] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'materials' | 'questions' | 'flashcards'>('materials');
+  const [activeTab, setActiveTab] = useState<'materials' | 'questions' | 'flashcards' | 'import'>('materials');
   const [uploading, setUploading] = useState(false);
   const [uploadMeta, setUploadMeta] = useState({ type: 'slide', title: '', stage: 1 });
   const fileRef = useRef<HTMLInputElement>(null);
@@ -31,6 +31,11 @@ export default function AdminTopicPage() {
   // New flashcard form
   const [newFC, setNewFC] = useState({ front_text: '', back_text: '' });
   const [savingFC, setSavingFC] = useState(false);
+
+  // Import
+  const [importJson, setImportJson] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported?: { flashcards: number; questions: number }; errors?: string[]; parseError?: string } | null>(null);
 
   async function load() {
     const [t, m, q, f] = await Promise.all([
@@ -105,6 +110,27 @@ export default function AdminTopicPage() {
     await load();
   }
 
+  async function runImport() {
+    setImportResult(null);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(importJson);
+    } catch {
+      setImportResult({ parseError: 'Invalid JSON — please check your syntax.' });
+      return;
+    }
+    setImporting(true);
+    const res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic_id: topicId, ...parsed }),
+    });
+    const data = await res.json();
+    setImporting(false);
+    setImportResult(data);
+    if (data.imported) await load();
+  }
+
   if (!topic) return <div className="p-8 font-sans text-ink-3">Loading…</div>;
 
   return (
@@ -129,6 +155,7 @@ export default function AdminTopicPage() {
           { key: 'materials', label: `Materials (${materials.length})`, icon: '📁' },
           { key: 'questions', label: `Questions (${questions.length})`, icon: '❓' },
           { key: 'flashcards', label: `Flashcards (${flashcards.length})`, icon: '🃏' },
+          { key: 'import', label: 'Import', icon: '📥' },
         ] as const).map(tab => (
           <button
             key={tab.key}
@@ -348,6 +375,65 @@ export default function AdminTopicPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+      {/* IMPORT TAB */}
+      {activeTab === 'import' && (
+        <div>
+          <div className="bg-paper-2 border border-rule rounded-xl p-5 mb-4">
+            <h3 className="font-sans font-semibold text-ink text-sm mb-1">Bulk Import via JSON</h3>
+            <p className="font-sans text-xs text-ink-4 mb-4">
+              Paste a JSON object containing <code className="font-mono bg-paper-3 px-1 rounded">flashcards</code> and/or{' '}
+              <code className="font-mono bg-paper-3 px-1 rounded">questions</code> arrays. Both keys are optional.
+            </p>
+            <textarea
+              value={importJson}
+              onChange={e => { setImportJson(e.target.value); setImportResult(null); }}
+              rows={16}
+              spellCheck={false}
+              placeholder={`{
+  "flashcards": [
+    { "front_text": "Term or question", "back_text": "Definition or answer" }
+  ],
+  "questions": [
+    {
+      "stem": "Question text",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct_index": 0,
+      "explanation": "Optional explanation shown after answering"
+    }
+  ]
+}`}
+              className="w-full px-3 py-2 border border-rule rounded-lg bg-paper text-ink text-xs font-mono focus:outline-none focus:border-gold mb-3 resize-y"
+            />
+            <button
+              onClick={runImport}
+              disabled={!importJson.trim() || importing}
+              className="px-5 py-2 bg-ink text-paper rounded-lg text-sm font-sans hover:bg-ink-2 transition-colors disabled:opacity-50"
+            >
+              {importing ? 'Importing…' : 'Import'}
+            </button>
+          </div>
+
+          {importResult && (
+            <div className={`rounded-xl p-4 text-sm font-sans border ${importResult.parseError || importResult.error ? 'bg-crimson/5 border-crimson/20 text-crimson' : 'bg-sage-light border-sage/20'}`}>
+              {importResult.parseError && <p>{importResult.parseError}</p>}
+              {importResult.error && <p>{importResult.error}</p>}
+              {importResult.imported && (
+                <p className="text-sage font-medium">
+                  Imported {importResult.imported.flashcards} flashcard{importResult.imported.flashcards !== 1 ? 's' : ''} and {importResult.imported.questions} question{importResult.imported.questions !== 1 ? 's' : ''}.
+                </p>
+              )}
+              {importResult.errors && importResult.errors.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-medium text-ink mb-1">Skipped items:</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-ink-3 text-xs">
+                    {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
