@@ -90,12 +90,12 @@ export default function LoginPage() {
                 <div>admin123</div>
               </div>
               <div className="bg-cobalt-light rounded p-2">
-                <div className="text-cobalt font-medium">Student 1</div>
+                <div className="text-cobalt font-medium">Ahmed</div>
                 <div>student1@tutor.local</div>
                 <div>student123</div>
               </div>
               <div className="bg-teal-light rounded p-2">
-                <div className="text-teal font-medium">Student 2</div>
+                <div className="text-teal font-medium">Fuzail</div>
                 <div>student2@tutor.local</div>
                 <div>student123</div>
               </div>

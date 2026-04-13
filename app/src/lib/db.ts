@@ -126,13 +126,16 @@ function initSchema(db: Database.Database) {
 
 function seedData(db: Database.Database) {
   const already = db.prepare('SELECT id FROM seed_done WHERE id = 1').get();
-  if (already) return;
+  if (already) {
+    ensureStudentNames(db);
+    return;
+  }
 
   // Create users
   const users = [
     { id: uuid(), email: 'admin@tutor.local', name: 'Admin', role: 'admin', pw: 'admin123' },
-    { id: uuid(), email: 'student1@tutor.local', name: 'Liam', role: 'student', pw: 'student123' },
-    { id: uuid(), email: 'student2@tutor.local', name: 'Aisha', role: 'student', pw: 'student123' },
+    { id: uuid(), email: 'student1@tutor.local', name: 'Ahmed', role: 'student', pw: 'student123' },
+    { id: uuid(), email: 'student2@tutor.local', name: 'Fuzail', role: 'student', pw: 'student123' },
     { id: uuid(), email: 'test@tutor.local', name: 'Test Account', role: 'test', pw: 'test123' },
   ];
   const insertUser = db.prepare(
@@ -163,4 +166,11 @@ function seedData(db: Database.Database) {
   });
 
   db.prepare('INSERT INTO seed_done (id) VALUES (1)').run();
+  ensureStudentNames(db);
+}
+
+function ensureStudentNames(db: Database.Database) {
+  const updateName = db.prepare('UPDATE users SET display_name = ? WHERE email = ?');
+  updateName.run('Ahmed', 'student1@tutor.local');
+  updateName.run('Fuzail', 'student2@tutor.local');
 }
