@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
       <div className="bg-paper-2 border border-rule rounded-xl overflow-hidden mb-8">
         <table className="w-full">
           <thead>
-            <tr className="bg-ink">
+            <tr className="bg-surface">
               <th className="px-5 py-3 text-left font-mono text-xs text-white/60 uppercase tracking-wider font-normal">Name</th>
               <th className="px-5 py-3 text-left font-mono text-xs text-white/60 uppercase tracking-wider font-normal">Email</th>
               <th className="px-5 py-3 text-left font-mono text-xs text-white/60 uppercase tracking-wider font-normal">Role</th>
@@ -127,7 +127,7 @@ export default function AdminUsersPage() {
 
       {/* Reset PW modal */}
       {editPw && (
-        <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-surface/70 flex items-center justify-center z-50 p-4">
           <div className="bg-paper rounded-2xl p-6 w-full max-w-sm">
             <h3 className="font-serif text-lg font-semibold text-ink mb-4">Reset Password</h3>
             <input

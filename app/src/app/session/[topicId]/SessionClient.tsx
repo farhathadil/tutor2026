@@ -65,7 +65,7 @@ export default function SessionClient({
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       {/* Minimal session nav */}
-      <nav className="bg-ink text-paper px-5 py-3 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-surface text-paper px-5 py-3 flex items-center justify-between sticky top-0 z-10">
         <Link href={`/topics/${topic.id}`} className="font-mono text-xs text-white/40 hover:text-white/70 transition-colors">
           ✕ Exit
         </Link>

@@ -43,7 +43,7 @@ export default async function SubjectPage({ params }: { params: { id: string } }
 
   return (
     <div className="min-h-screen bg-paper">
-      <nav className="bg-ink text-paper px-6 py-4 flex items-center gap-4 sticky top-0 z-10">
+      <nav className="bg-surface text-paper px-6 py-4 flex items-center gap-4 sticky top-0 z-10">
         <Link href="/dashboard" className="font-mono text-xs text-white/50 hover:text-white transition-colors">← Back</Link>
         <span className="font-serif text-xl font-semibold text-white">
           Grade 8 <span className="text-gold-light">Tutor</span>

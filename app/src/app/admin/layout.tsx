@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-paper flex">
       {/* Sidebar */}
-      <aside className="w-56 bg-ink text-paper flex-shrink-0 flex flex-col sticky top-0 h-screen">
+      <aside className="w-56 bg-surface text-paper flex-shrink-0 flex flex-col sticky top-0 h-screen">
         <div className="p-5 border-b border-white/10">
           <p className="font-mono text-xs text-white/40 uppercase tracking-wider mb-1">Admin Panel</p>
           <p className="font-serif text-lg font-semibold text-white">Grade 8 <span className="text-gold-light">Tutor</span></p>

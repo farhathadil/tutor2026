@@ -68,7 +68,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-paper">
       {/* Nav */}
-      <nav className="bg-ink text-paper px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <nav className="bg-surface text-paper px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-6">
           <span className="font-serif text-xl font-semibold text-white">
             Grade 8 <span className="text-gold-light">Tutor</span>

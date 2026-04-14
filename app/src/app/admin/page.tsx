@@ -50,7 +50,7 @@ export default async function AdminOverview() {
       <div className="bg-paper-2 border border-rule rounded-xl overflow-hidden mb-8">
         <table className="w-full">
           <thead>
-            <tr className="bg-ink">
+            <tr className="bg-surface">
               <th className="px-5 py-3 text-left font-mono text-xs text-white/60 uppercase tracking-wider font-normal">Student</th>
               <th className="px-5 py-3 text-left font-mono text-xs text-white/60 uppercase tracking-wider font-normal">Role</th>
               <th className="px-5 py-3 text-left font-mono text-xs text-white/60 uppercase tracking-wider font-normal">Topics Started</th>
