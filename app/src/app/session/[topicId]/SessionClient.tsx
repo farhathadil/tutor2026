@@ -147,8 +147,20 @@ function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onCo
   const videos = materials.filter(m => m.type === 'video');
   const slideshows = materials.filter(m => m.type === 'slideshow');
 
+  // IDs that must be reviewed before the button unlocks (PDFs excluded)
+  const trackable = [...slideshows, ...videos, ...audios].map(m => m.id);
+
+  // Pre-fill as reviewed if the stage is already complete
+  const [reviewed, setReviewed] = useState<Set<string>>(
+    () => new Set(isDone ? trackable : [])
+  );
   const [openSlideshow, setOpenSlideshow] = useState<Material | null>(null);
 
+  function markReviewed(id: string) {
+    setReviewed(prev => new Set(Array.from(prev).concat(id)));
+  }
+
+  const allReviewed = trackable.length === 0 || trackable.every(id => reviewed.has(id));
   const hasContent = slides.length > 0 || audios.length > 0 || videos.length > 0 || slideshows.length > 0;
 
   return (
@@ -160,27 +172,37 @@ function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onCo
       ) : (
         <>
           {slideshows.map(m => (
-            <SlideshowCard key={m.id} material={m} onOpen={() => setOpenSlideshow(m)} />
+            <SlideshowCard
+              key={m.id}
+              material={m}
+              reviewed={reviewed.has(m.id)}
+              onOpen={() => setOpenSlideshow(m)}
+            />
           ))}
           {slides.map(m => (
             <MaterialCard key={m.id} material={m} />
           ))}
           {videos.map(m => (
-            <MaterialCard key={m.id} material={m} />
+            <MaterialCard key={m.id} material={m} onEnded={() => markReviewed(m.id)} />
           ))}
           {audios.map(m => (
-            <MaterialCard key={m.id} material={m} />
+            <MaterialCard key={m.id} material={m} onEnded={() => markReviewed(m.id)} />
           ))}
         </>
       )}
 
-      <CompleteButton onComplete={onComplete} isDone={isDone} label="I've reviewed the slides, videos & audio →" />
+      <CompleteButton
+        onComplete={onComplete}
+        isDone={isDone}
+        locked={!allReviewed}
+        label="I've reviewed the slides, videos & audio →"
+      />
 
       {openSlideshow && (
         <SlideshowViewer
           material={openSlideshow}
           onClose={() => setOpenSlideshow(null)}
-          onComplete={onComplete}
+          onFinish={() => markReviewed(openSlideshow.id)}
         />
       )}
     </div>
@@ -587,12 +609,13 @@ function Stage5({ topicId, subjectId, completedStages, materials, questions, fla
 }
 
 // ─── Slideshow ────────────────────────────────────────────────────────────────
-function SlideshowCard({ material, onOpen }: { material: Material; onOpen: () => void }) {
+function SlideshowCard({ material, reviewed, onOpen }: { material: Material; reviewed: boolean; onOpen: () => void }) {
   return (
-    <div className="mb-4 bg-paper-2 border border-rule rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-rule flex items-center gap-2">
-        <span className="text-base">🖼️</span>
+    <div className={`mb-4 border rounded-xl overflow-hidden ${reviewed ? 'bg-sage-light/40 border-sage/30' : 'bg-paper-2 border-rule'}`}>
+      <div className="px-4 py-3 border-b border-inherit flex items-center gap-2">
+        <span className="text-base">{reviewed ? '✅' : '🖼️'}</span>
         <span className="font-sans text-sm font-medium text-ink">{material.title}</span>
+        {reviewed && <span className="font-mono text-xs text-sage ml-1">Reviewed</span>}
         <span className="font-mono text-xs text-ink-4 ml-auto">{material.slide_count ?? 0} slides</span>
       </div>
       <div className="p-4 flex items-center justify-between">
@@ -601,7 +624,7 @@ function SlideshowCard({ material, onOpen }: { material: Material; onOpen: () =>
           onClick={onOpen}
           className="px-5 py-2 bg-ink text-paper rounded-lg font-sans text-sm hover:bg-ink-2 transition-colors"
         >
-          Open Slideshow →
+          {reviewed ? 'Rewatch →' : 'Open Slideshow →'}
         </button>
       </div>
     </div>
@@ -609,11 +632,11 @@ function SlideshowCard({ material, onOpen }: { material: Material; onOpen: () =>
 }
 
 function SlideshowViewer({
-  material, onClose, onComplete,
+  material, onClose, onFinish,
 }: {
   material: Material;
   onClose: () => void;
-  onComplete: () => void;
+  onFinish: () => void;
 }) {
   const [slides, setSlides] = useState<SlideshowSlide[]>([]);
   const [loading, setLoading] = useState(true);
@@ -652,7 +675,7 @@ function SlideshowViewer({
     if (current < slides.length - 1) {
       setCurrent(c => c + 1);
     } else {
-      onComplete();
+      onFinish();
       onClose();
     }
   }
@@ -779,7 +802,7 @@ function StageHeader({ n, icon, label, desc, isDone }: { n: number; icon: string
   );
 }
 
-function MaterialCard({ material }: { material: Material }) {
+function MaterialCard({ material, onEnded }: { material: Material; onEnded?: () => void }) {
   const isPdf = material.filename.endsWith('.pdf');
   const isAudio = ['mp3', 'm4a', 'wav', 'ogg'].some(ext => material.filename.endsWith(ext));
   const isVideo = material.filename.endsWith('.mp4');
@@ -800,12 +823,12 @@ function MaterialCard({ material }: { material: Material }) {
       <div className="bg-paper">
         {isVideo && (
           <div className="p-4">
-            <video controls className="w-full rounded-lg" src={fileUrl}>Your browser does not support video.</video>
+            <video controls className="w-full rounded-lg" src={fileUrl} onEnded={onEnded}>Your browser does not support video.</video>
           </div>
         )}
         {isAudio && (
           <div className="p-4">
-            <audio controls className="w-full" src={fileUrl}>Your browser does not support audio.</audio>
+            <audio controls className="w-full" src={fileUrl} onEnded={onEnded}>Your browser does not support audio.</audio>
           </div>
         )}
         {isPdf && (
@@ -835,15 +858,23 @@ function EmptyState({ msg }: { msg: string }) {
   );
 }
 
-function CompleteButton({ onComplete, isDone, label }: { onComplete: () => void; isDone: boolean; label: string }) {
+function CompleteButton({ onComplete, isDone, label, locked = false }: { onComplete: () => void; isDone: boolean; label: string; locked?: boolean }) {
   return (
     <div className="mt-6">
+      {locked && (
+        <p className="font-mono text-xs text-ink-4 text-center mb-2">
+          Complete all slideshows, videos &amp; audio above to continue
+        </p>
+      )}
       <button
         onClick={onComplete}
+        disabled={locked}
         className={`w-full py-4 rounded-xl font-sans font-medium text-sm transition-all ${
           isDone
             ? 'bg-sage-light text-sage border border-sage/30'
-            : 'bg-ink text-paper hover:bg-ink-2'
+            : locked
+              ? 'bg-paper-3 text-ink-4 cursor-not-allowed'
+              : 'bg-ink text-paper hover:bg-ink-2'
         }`}
       >
         {isDone ? '✓ Already completed — ' + label : label}
