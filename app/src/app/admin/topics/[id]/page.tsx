@@ -6,6 +6,7 @@ import Link from 'next/link';
 const MATERIAL_TYPES = [
   { value: 'slide', label: 'Slideshow', icon: '🖥️', stage: 1, accept: '.pdf,.pptx,.key' },
   { value: 'audio', label: 'Podcast/Audio', icon: '🎧', stage: 1, accept: '.mp3,.m4a,.wav,.ogg' },
+  { value: 'video', label: 'Video', icon: '🎬', stage: 1, accept: '.mp4' },
   { value: 'guide', label: 'Study Guide', icon: '📋', stage: 2, accept: '.pdf,.docx' },
   { value: 'mindmap', label: 'Mind Map', icon: '🗺️', stage: 2, accept: '.png,.jpg,.svg,.pdf' },
   { value: 'infographic', label: 'Infographic', icon: '📊', stage: 5, accept: '.png,.jpg,.svg,.pdf' },
@@ -418,9 +419,8 @@ export default function AdminTopicPage() {
           </div>
 
           {importResult && (
-            <div className={`rounded-xl p-4 text-sm font-sans border ${importResult.parseError || importResult.error ? 'bg-crimson/5 border-crimson/20 text-crimson' : 'bg-sage-light border-sage/20'}`}>
+            <div className={`rounded-xl p-4 text-sm font-sans border ${importResult.parseError || (importResult.errors && importResult.errors.length > 0) ? 'bg-crimson/5 border-crimson/20 text-crimson' : 'bg-sage-light border-sage/20'}`}>
               {importResult.parseError && <p>{importResult.parseError}</p>}
-              {importResult.error && <p>{importResult.error}</p>}
               {importResult.imported && (
                 <p className="text-sage font-medium">
                   Imported {importResult.imported.flashcards} flashcard{importResult.imported.flashcards !== 1 ? 's' : ''} and {importResult.imported.questions} question{importResult.imported.questions !== 1 ? 's' : ''}.

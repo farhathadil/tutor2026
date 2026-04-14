@@ -47,6 +47,20 @@ export default function AdminUsersPage() {
     await load();
   }
 
+  async function resetProgress(u: any) {
+    if (!confirm(`Reset all progress for ${u.display_name}? This will clear their session progress, quiz attempts, and flashcard ratings.`)) return;
+    await fetch(`/api/progress?userId=${u.id}`, { method: 'DELETE' });
+    await load();
+  }
+
+  async function resetAllProgress() {
+    const nonAdmins = users.filter(u => u.role !== 'admin');
+    if (nonAdmins.length === 0) return;
+    if (!confirm(`Reset sessions for ALL ${nonAdmins.length} student(s)? This will clear all session progress, quiz attempts, and flashcard ratings.`)) return;
+    await Promise.all(nonAdmins.map(u => fetch(`/api/progress?userId=${u.id}`, { method: 'DELETE' })));
+    await load();
+  }
+
   const roleColors: Record<string, string> = {
     admin: 'bg-ink text-paper',
     student: 'bg-cobalt-light text-cobalt',
@@ -58,6 +72,13 @@ export default function AdminUsersPage() {
       <div className="mb-8">
         <p className="font-mono text-xs tracking-wider text-gold uppercase mb-1">Admin Panel</p>
         <h1 className="font-serif text-3xl font-bold text-ink">User Management</h1>
+      </div>
+
+      {/* Bulk actions */}
+      <div className="flex justify-end mb-3">
+        <button onClick={resetAllProgress} className="font-mono text-xs text-crimson hover:text-crimson/70 border border-crimson/30 hover:bg-crimson/5 px-3 py-1.5 rounded transition-colors">
+          Reset All Sessions
+        </button>
       </div>
 
       {/* Users table */}
@@ -92,6 +113,11 @@ export default function AdminUsersPage() {
                   <button onClick={() => setEditPw({ id: u.id, pw: '' })} className="font-mono text-xs text-cobalt hover:text-cobalt/70 px-2 py-1 hover:bg-cobalt-light rounded">
                     Reset PW
                   </button>
+                  {u.role !== 'admin' && (
+                    <button onClick={() => resetProgress(u)} className="font-mono text-xs text-crimson hover:text-crimson/70 px-2 py-1 hover:bg-crimson/5 rounded">
+                      Reset Progress
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

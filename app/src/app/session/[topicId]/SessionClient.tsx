@@ -139,20 +139,24 @@ export default function SessionClient({
   );
 }
 
-// ─── Stage 1: Introduce (Slides + Audio) ────────────────────────────────────
+// ─── Stage 1: Introduce (Slides + Audio + Video) ─────────────────────────────
 function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onComplete: () => void; isDone: boolean }) {
   const slides = materials.filter(m => m.type === 'slide');
   const audios = materials.filter(m => m.type === 'audio');
+  const videos = materials.filter(m => m.type === 'video');
 
   return (
     <div>
-      <StageHeader n={1} icon="🎬" label="Introduce" desc="Work through the slides and listen to any audio before moving on." isDone={isDone} />
+      <StageHeader n={1} icon="🎬" label="Introduce" desc="Work through the slides, watch any videos, and listen to any audio before moving on." isDone={isDone} />
 
-      {slides.length === 0 && audios.length === 0 ? (
-        <EmptyState msg="No slides or audio uploaded yet for this stage." />
+      {slides.length === 0 && audios.length === 0 && videos.length === 0 ? (
+        <EmptyState msg="No slides, videos, or audio uploaded yet for this stage." />
       ) : (
         <>
           {slides.map(m => (
+            <MaterialCard key={m.id} material={m} />
+          ))}
+          {videos.map(m => (
             <MaterialCard key={m.id} material={m} />
           ))}
           {audios.map(m => (
@@ -161,7 +165,7 @@ function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onCo
         </>
       )}
 
-      <CompleteButton onComplete={onComplete} isDone={isDone} label="I've reviewed the slides & audio →" />
+      <CompleteButton onComplete={onComplete} isDone={isDone} label="I've reviewed the slides, videos & audio →" />
     </div>
   );
 }
@@ -585,17 +589,27 @@ function StageHeader({ n, icon, label, desc, isDone }: { n: number; icon: string
 function MaterialCard({ material }: { material: Material }) {
   const isPdf = material.filename.endsWith('.pdf');
   const isAudio = ['mp3', 'm4a', 'wav', 'ogg'].some(ext => material.filename.endsWith(ext));
+  const isVideo = material.filename.endsWith('.mp4');
   const isImage = ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'].some(ext => material.filename.endsWith(ext));
   const fileUrl = `/api/uploads/${material.filename}`;
+
+  const typeIcon: Record<string, string> = {
+    slide: '🖥️', audio: '🎧', video: '🎬', guide: '📋', mindmap: '🗺️', infographic: '📊',
+  };
 
   return (
     <div className="mb-4 bg-paper-2 border border-rule rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-rule flex items-center gap-2">
-        <span className="text-base">{material.type === 'slide' ? '🖥️' : material.type === 'audio' ? '🎧' : material.type === 'guide' ? '📋' : material.type === 'mindmap' ? '🗺️' : '📊'}</span>
+        <span className="text-base">{typeIcon[material.type] ?? '📄'}</span>
         <span className="font-sans text-sm font-medium text-ink">{material.title}</span>
         <span className="font-mono text-xs text-ink-4 ml-auto uppercase">{material.type}</span>
       </div>
       <div className="bg-paper">
+        {isVideo && (
+          <div className="p-4">
+            <video controls className="w-full rounded-lg" src={fileUrl}>Your browser does not support video.</video>
+          </div>
+        )}
         {isAudio && (
           <div className="p-4">
             <audio controls className="w-full" src={fileUrl}>Your browser does not support audio.</audio>
@@ -607,7 +621,7 @@ function MaterialCard({ material }: { material: Material }) {
         {isImage && (
           <img src={fileUrl} alt={material.title} className="w-full h-auto max-h-96 object-contain p-2" />
         )}
-        {!isPdf && !isAudio && !isImage && (
+        {!isPdf && !isAudio && !isVideo && !isImage && (
           <div className="p-4 text-center">
             <a href={fileUrl} target="_blank" rel="noreferrer" className="font-sans text-sm text-cobalt hover:underline">
               📥 Download {material.original_name || material.filename}
