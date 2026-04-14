@@ -748,13 +748,14 @@ function SlideshowViewer({
 
         <button
           onClick={goNext}
+          disabled={!expired}
           className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all ${
             expired
               ? 'bg-gold text-ink shadow-lg shadow-gold/40 animate-pulse'
-              : 'bg-white/10 text-white hover:bg-white/20'
+              : 'bg-white/10 text-white/30 cursor-not-allowed'
           }`}
         >
-          {isLast ? (expired ? '✓ Finish' : 'Finish') : (expired ? 'Next →' : 'Next →')}
+          {isLast ? (expired ? '✓ Finish' : 'Finish') : 'Next →'}
         </button>
       </div>
     </div>
