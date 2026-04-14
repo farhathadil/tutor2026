@@ -13,9 +13,17 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const db = getDb();
-  const mat = db.prepare('SELECT filename FROM materials WHERE id=?').get(params.id) as any;
+  const mat = db.prepare('SELECT type, filename FROM materials WHERE id=?').get(params.id) as any;
   if (mat) {
-    try { fs.unlinkSync(path.join(UPLOAD_DIR, mat.filename)); } catch {}
+    if (mat.type === 'slideshow') {
+      // Delete each slide's PNG file
+      const slides = db.prepare('SELECT filename FROM slideshow_slides WHERE material_id=?').all(params.id) as any[];
+      for (const slide of slides) {
+        try { fs.unlinkSync(path.join(UPLOAD_DIR, slide.filename)); } catch {}
+      }
+    } else if (mat.filename) {
+      try { fs.unlinkSync(path.join(UPLOAD_DIR, mat.filename)); } catch {}
+    }
     db.prepare('DELETE FROM materials WHERE id=?').run(params.id);
   }
   return NextResponse.json({ ok: true });

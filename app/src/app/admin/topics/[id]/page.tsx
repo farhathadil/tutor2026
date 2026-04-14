@@ -4,12 +4,13 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
 const MATERIAL_TYPES = [
-  { value: 'slide', label: 'Slideshow', icon: '🖥️', stage: 1, accept: '.pdf,.pptx,.key' },
-  { value: 'audio', label: 'Podcast/Audio', icon: '🎧', stage: 1, accept: '.mp3,.m4a,.wav,.ogg' },
-  { value: 'video', label: 'Video', icon: '🎬', stage: 1, accept: '.mp4' },
-  { value: 'guide', label: 'Study Guide', icon: '📋', stage: 2, accept: '.pdf,.docx' },
-  { value: 'mindmap', label: 'Mind Map', icon: '🗺️', stage: 2, accept: '.png,.jpg,.svg,.pdf' },
-  { value: 'infographic', label: 'Infographic', icon: '📊', stage: 5, accept: '.png,.jpg,.svg,.pdf' },
+  { value: 'slide', label: 'Slide File (PDF/PPT)', icon: '🖥️', stage: 1, accept: '.pdf,.pptx,.key', multi: false },
+  { value: 'slideshow', label: 'Image Slideshow (PNGs)', icon: '🖼️', stage: 1, accept: '.png,.jpg,.jpeg,.webp', multi: true },
+  { value: 'audio', label: 'Podcast/Audio', icon: '🎧', stage: 1, accept: '.mp3,.m4a,.wav,.ogg', multi: false },
+  { value: 'video', label: 'Video', icon: '🎬', stage: 1, accept: '.mp4', multi: false },
+  { value: 'guide', label: 'Study Guide', icon: '📋', stage: 2, accept: '.pdf,.docx', multi: false },
+  { value: 'mindmap', label: 'Mind Map', icon: '🗺️', stage: 2, accept: '.png,.jpg,.svg,.pdf', multi: false },
+  { value: 'infographic', label: 'Infographic', icon: '📊', stage: 5, accept: '.png,.jpg,.svg,.pdf', multi: false },
 ];
 
 export default function AdminTopicPage() {
@@ -66,13 +67,25 @@ export default function AdminTopicPage() {
   async function uploadMaterial() {
     if (!fileRef.current?.files?.[0]) return;
     setUploading(true);
-    const fd = new FormData();
-    fd.append('file', fileRef.current.files[0]);
-    fd.append('topicId', topicId);
-    fd.append('type', uploadMeta.type);
-    fd.append('title', uploadMeta.title || fileRef.current.files[0].name);
-    fd.append('session_stage', String(uploadMeta.stage));
-    await fetch('/api/materials', { method: 'POST', body: fd });
+
+    if (uploadMeta.type === 'slideshow') {
+      const files = Array.from(fileRef.current.files);
+      const fd = new FormData();
+      files.forEach(f => fd.append('files', f));
+      fd.append('topicId', topicId);
+      fd.append('title', uploadMeta.title || 'Slideshow');
+      fd.append('session_stage', String(uploadMeta.stage));
+      await fetch('/api/materials/slideshow', { method: 'POST', body: fd });
+    } else {
+      const fd = new FormData();
+      fd.append('file', fileRef.current.files[0]);
+      fd.append('topicId', topicId);
+      fd.append('type', uploadMeta.type);
+      fd.append('title', uploadMeta.title || fileRef.current.files[0].name);
+      fd.append('session_stage', String(uploadMeta.stage));
+      await fetch('/api/materials', { method: 'POST', body: fd });
+    }
+
     setUploading(false);
     fileRef.current.value = '';
     setUploadMeta({ type: 'slide', title: '', stage: 1 });
@@ -364,12 +377,18 @@ export default function AdminTopicPage() {
                 onChange={e => setUploadMeta({ ...uploadMeta, title: e.target.value })}
                 className="px-3 py-2 border border-rule rounded-lg bg-paper text-ink text-sm font-sans focus:outline-none focus:border-gold"
               />
-              <input
-                type="file"
-                ref={fileRef}
-                accept={MATERIAL_TYPES.find(t => t.value === uploadMeta.type)?.accept}
-                className="text-sm font-sans text-ink-3 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-ink file:text-paper file:text-xs file:cursor-pointer"
-              />
+              <div>
+                <input
+                  type="file"
+                  ref={fileRef}
+                  accept={MATERIAL_TYPES.find(t => t.value === uploadMeta.type)?.accept}
+                  multiple={MATERIAL_TYPES.find(t => t.value === uploadMeta.type)?.multi}
+                  className="text-sm font-sans text-ink-3 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-ink file:text-paper file:text-xs file:cursor-pointer"
+                />
+                {uploadMeta.type === 'slideshow' && (
+                  <p className="font-mono text-xs text-ink-4 mt-1">Select multiple PNG/JPG files — ordered alphabetically by filename.</p>
+                )}
+              </div>
             </div>
             <button
               onClick={uploadMaterial}
@@ -389,15 +408,20 @@ export default function AdminTopicPage() {
                 const mt = MATERIAL_TYPES.find(t => t.value === m.type);
                 return (
                   <div key={m.id} className="flex items-center gap-3 bg-paper-2 border border-rule rounded-xl px-4 py-3">
-                    <span className="text-lg">{mt?.icon}</span>
+                    <span className="text-lg">{mt?.icon ?? '📄'}</span>
                     <div className="flex-1">
                       <span className="font-sans text-sm text-ink font-medium">{m.title}</span>
-                      <span className="font-mono text-xs text-ink-4 ml-2">{m.original_name}</span>
+                      {m.type === 'slideshow'
+                        ? <span className="font-mono text-xs text-ink-4 ml-2">{m.slide_count} slide{m.slide_count !== 1 ? 's' : ''}</span>
+                        : <span className="font-mono text-xs text-ink-4 ml-2">{m.original_name}</span>
+                      }
                     </div>
                     <span className="font-mono text-xs text-ink-4 bg-paper-3 px-2 py-0.5 rounded">Stage {m.session_stage}</span>
                     <span className="font-mono text-xs text-ink-4 bg-paper-3 px-2 py-0.5 rounded uppercase">{m.type}</span>
-                    <a href={`/api/uploads/${m.filename}`} target="_blank" rel="noreferrer"
-                      className="font-mono text-xs text-cobalt hover:underline">View</a>
+                    {m.type !== 'slideshow' && (
+                      <a href={`/api/uploads/${m.filename}`} target="_blank" rel="noreferrer"
+                        className="font-mono text-xs text-cobalt hover:underline">View</a>
+                    )}
                     <button onClick={() => deleteMaterial(m.id)}
                       className="font-mono text-xs text-crimson hover:text-crimson/70">Delete</button>
                   </div>

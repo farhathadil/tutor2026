@@ -13,7 +13,12 @@ export async function GET(req: Request) {
   const topicId = searchParams.get('topicId');
   const db = getDb();
   const mats = db.prepare(
-    `SELECT * FROM materials WHERE topic_id = ? ORDER BY session_stage, created_at`
+    `SELECT m.*, COUNT(ss.id) as slide_count
+     FROM materials m
+     LEFT JOIN slideshow_slides ss ON ss.material_id = m.id
+     WHERE m.topic_id = ?
+     GROUP BY m.id
+     ORDER BY m.session_stage, m.created_at`
   ).all(topicId || '');
   return NextResponse.json(mats);
 }

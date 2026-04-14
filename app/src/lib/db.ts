@@ -17,6 +17,7 @@ export function getDb(): Database.Database {
     _db.pragma('journal_mode = WAL');
     _db.pragma('foreign_keys = ON');
     initSchema(_db);
+    runMigrations(_db);
     seedData(_db);
   }
   return _db;
@@ -58,7 +59,7 @@ function initSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS materials (
       id TEXT PRIMARY KEY,
       topic_id TEXT NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-      type TEXT NOT NULL CHECK(type IN ('slide','audio','guide','mindmap','infographic')),
+      type TEXT NOT NULL CHECK(type IN ('slide','audio','video','guide','mindmap','infographic','slideshow')),
       title TEXT NOT NULL,
       filename TEXT NOT NULL,
       original_name TEXT NOT NULL,
@@ -118,10 +119,56 @@ function initSchema(db: Database.Database) {
       next_due_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS slideshow_slides (
+      id TEXT PRIMARY KEY,
+      material_id TEXT NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS db_migrations (
+      id INTEGER PRIMARY KEY
+    );
+
     CREATE TABLE IF NOT EXISTS seed_done (
       id INTEGER PRIMARY KEY DEFAULT 1
     );
   `);
+}
+
+function runMigrations(db: Database.Database) {
+  const applied = new Set(
+    (db.prepare('SELECT id FROM db_migrations').all() as any[]).map(r => r.id)
+  );
+
+  if (!applied.has(1)) {
+    // Migration 1: add 'slideshow' to materials type check constraint
+    const row = db.prepare(
+      `SELECT sql FROM sqlite_master WHERE type='table' AND name='materials'`
+    ).get() as any;
+    if (row?.sql && !row.sql.includes('slideshow')) {
+      db.pragma('foreign_keys = OFF');
+      db.exec(`
+        CREATE TABLE materials_new (
+          id TEXT PRIMARY KEY,
+          topic_id TEXT NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+          type TEXT NOT NULL CHECK(type IN ('slide','audio','video','guide','mindmap','infographic','slideshow')),
+          title TEXT NOT NULL,
+          filename TEXT NOT NULL DEFAULT '',
+          original_name TEXT NOT NULL DEFAULT '',
+          file_size_bytes INTEGER NOT NULL DEFAULT 0,
+          session_stage INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      db.exec(`INSERT INTO materials_new SELECT * FROM materials`);
+      db.exec(`DROP TABLE materials`);
+      db.exec(`ALTER TABLE materials_new RENAME TO materials`);
+      db.pragma('foreign_keys = ON');
+    }
+    db.prepare('INSERT INTO db_migrations (id) VALUES (?)').run(1);
+  }
 }
 
 function seedData(db: Database.Database) {

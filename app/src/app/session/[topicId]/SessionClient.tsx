@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 
-type Material = { id: string; type: string; title: string; filename: string; original_name?: string; session_stage: number };
+type Material = { id: string; type: string; title: string; filename: string; original_name?: string; session_stage: number; slide_count?: number };
+type SlideshowSlide = { id: string; filename: string; original_name: string; sort_order: number };
 type Question = { id: string; stem: string; options: string[]; correct_index: number; explanation: string | null };
 type Flashcard = { id: string; front_text: string; back_text: string };
 type Progress = { current_stage: number; completed_stages: number[]; time_spent_secs: number };
@@ -139,20 +140,28 @@ export default function SessionClient({
   );
 }
 
-// ─── Stage 1: Introduce (Slides + Audio + Video) ─────────────────────────────
+// ─── Stage 1: Introduce (Slides + Audio + Video + Slideshows) ────────────────
 function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onComplete: () => void; isDone: boolean }) {
   const slides = materials.filter(m => m.type === 'slide');
   const audios = materials.filter(m => m.type === 'audio');
   const videos = materials.filter(m => m.type === 'video');
+  const slideshows = materials.filter(m => m.type === 'slideshow');
+
+  const [openSlideshow, setOpenSlideshow] = useState<Material | null>(null);
+
+  const hasContent = slides.length > 0 || audios.length > 0 || videos.length > 0 || slideshows.length > 0;
 
   return (
     <div>
       <StageHeader n={1} icon="🎬" label="Introduce" desc="Work through the slides, watch any videos, and listen to any audio before moving on." isDone={isDone} />
 
-      {slides.length === 0 && audios.length === 0 && videos.length === 0 ? (
+      {!hasContent ? (
         <EmptyState msg="No slides, videos, or audio uploaded yet for this stage." />
       ) : (
         <>
+          {slideshows.map(m => (
+            <SlideshowCard key={m.id} material={m} onOpen={() => setOpenSlideshow(m)} />
+          ))}
           {slides.map(m => (
             <MaterialCard key={m.id} material={m} />
           ))}
@@ -166,6 +175,14 @@ function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onCo
       )}
 
       <CompleteButton onComplete={onComplete} isDone={isDone} label="I've reviewed the slides, videos & audio →" />
+
+      {openSlideshow && (
+        <SlideshowViewer
+          material={openSlideshow}
+          onClose={() => setOpenSlideshow(null)}
+          onComplete={onComplete}
+        />
+      )}
     </div>
   );
 }
@@ -564,6 +581,181 @@ function Stage5({ topicId, subjectId, completedStages, materials, questions, fla
         <Link href={`/subjects/${subjectId}`} className="flex-1 text-center py-3 rounded-xl bg-ink text-paper font-sans text-sm hover:bg-ink-2 transition-colors">
           Next Topic →
         </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Slideshow ────────────────────────────────────────────────────────────────
+function SlideshowCard({ material, onOpen }: { material: Material; onOpen: () => void }) {
+  return (
+    <div className="mb-4 bg-paper-2 border border-rule rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-rule flex items-center gap-2">
+        <span className="text-base">🖼️</span>
+        <span className="font-sans text-sm font-medium text-ink">{material.title}</span>
+        <span className="font-mono text-xs text-ink-4 ml-auto">{material.slide_count ?? 0} slides</span>
+      </div>
+      <div className="p-4 flex items-center justify-between">
+        <p className="font-sans text-xs text-ink-4">Full-screen slideshow · 30 s timer per slide</p>
+        <button
+          onClick={onOpen}
+          className="px-5 py-2 bg-ink text-paper rounded-lg font-sans text-sm hover:bg-ink-2 transition-colors"
+        >
+          Open Slideshow →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SlideshowViewer({
+  material, onClose, onComplete,
+}: {
+  material: Material;
+  onClose: () => void;
+  onComplete: () => void;
+}) {
+  const [slides, setSlides] = useState<SlideshowSlide[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/slideshow/${material.id}`)
+      .then(r => r.json())
+      .then((data: SlideshowSlide[]) => { setSlides(data); setLoading(false); });
+  }, [material.id]);
+
+  // Reset and start countdown each time slide changes
+  useEffect(() => {
+    if (slides.length === 0) return;
+    setTimeLeft(30);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) { clearInterval(timerRef.current!); timerRef.current = null; return 0; }
+        return t - 1;
+      });
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [current, slides.length]);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  function goNext() {
+    if (current < slides.length - 1) {
+      setCurrent(c => c + 1);
+    } else {
+      onComplete();
+      onClose();
+    }
+  }
+
+  function goBack() {
+    if (current > 0) setCurrent(c => c - 1);
+  }
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+        <p className="text-white/60 font-mono text-sm">Loading slides…</p>
+      </div>
+    );
+  }
+
+  const slide = slides[current];
+  const isLast = current === slides.length - 1;
+  const expired = timeLeft === 0;
+
+  // Timer ring: stroke-dasharray 100, stroke-dashoffset = 100 - (timeLeft/30)*100
+  const pct = (timeLeft / 30) * 100;
+
+  return (
+    <div className="fixed inset-0 bg-black z-50 flex flex-col select-none">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3 bg-black/80 backdrop-blur-sm border-b border-white/10 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="font-sans text-sm font-medium text-white">{material.title}</span>
+          <span className="font-mono text-xs text-white/40">{current + 1} / {slides.length}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="font-mono text-xs text-white/40 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/10"
+        >
+          ✕ Close
+        </button>
+      </div>
+
+      {/* Slide area */}
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-black">
+        {slide && (
+          <img
+            key={slide.id}
+            src={`/api/uploads/${slide.filename}`}
+            alt={slide.original_name}
+            className="max-w-full max-h-full object-contain"
+            draggable={false}
+          />
+        )}
+
+        {/* Countdown timer — lower-right corner */}
+        <div className="absolute bottom-4 right-4 w-11 h-11">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+            <circle
+              cx="18" cy="18" r="15" fill="none"
+              stroke={expired ? 'rgb(var(--gold))' : 'rgba(255,255,255,0.5)'}
+              strokeWidth="3"
+              strokeDasharray="94.25"
+              strokeDashoffset={94.25 - (pct / 100) * 94.25}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 0.9s linear, stroke 0.3s' }}
+            />
+          </svg>
+          <span className={`absolute inset-0 flex items-center justify-center font-mono text-xs font-bold ${expired ? 'text-gold' : 'text-white/60'}`}>
+            {expired ? '!' : timeLeft}
+          </span>
+        </div>
+      </div>
+
+      {/* Navigation footer */}
+      <div className="flex items-center justify-between px-5 py-4 bg-black/80 backdrop-blur-sm border-t border-white/10 flex-shrink-0 gap-4">
+        <button
+          onClick={goBack}
+          disabled={current === 0}
+          className="px-5 py-2.5 rounded-xl bg-white/10 text-white font-sans text-sm hover:bg-white/20 transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+        >
+          ← Back
+        </button>
+
+        {/* Dot progress */}
+        <div className="flex gap-1.5 flex-wrap justify-center flex-1 max-w-xs">
+          {slides.map((_, i) => (
+            <div
+              key={i}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                i < current ? 'bg-white/50' : i === current ? 'bg-white scale-125' : 'bg-white/20'
+              }`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={goNext}
+          className={`px-5 py-2.5 rounded-xl font-sans text-sm font-medium transition-all ${
+            expired
+              ? 'bg-gold text-ink shadow-lg shadow-gold/40 animate-pulse'
+              : 'bg-white/10 text-white hover:bg-white/20'
+          }`}
+        >
+          {isLast ? (expired ? '✓ Finish' : 'Finish') : (expired ? 'Next →' : 'Next →')}
+        </button>
       </div>
     </div>
   );

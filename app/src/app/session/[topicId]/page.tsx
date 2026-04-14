@@ -18,7 +18,12 @@ export default async function SessionPage({ params }: { params: { topicId: strin
   if (!topic.is_published && !isAdmin && session.user.role !== 'test') redirect('/dashboard');
 
   const materials = db.prepare(
-    'SELECT * FROM materials WHERE topic_id = ? ORDER BY session_stage, created_at'
+    `SELECT m.*, COUNT(ss.id) as slide_count
+     FROM materials m
+     LEFT JOIN slideshow_slides ss ON ss.material_id = m.id
+     WHERE m.topic_id = ?
+     GROUP BY m.id
+     ORDER BY m.session_stage, m.created_at`
   ).all(params.topicId) as any[];
 
   const questions = db.prepare('SELECT * FROM questions WHERE topic_id = ? ORDER BY sort_order').all(params.topicId) as any[];
