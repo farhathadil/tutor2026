@@ -33,10 +33,20 @@ export default function AdminTopicPage() {
   const [newFC, setNewFC] = useState({ front_text: '', back_text: '' });
   const [savingFC, setSavingFC] = useState(false);
 
-  // Import
+  // Import (JSON)
   const [importJson, setImportJson] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ imported?: { flashcards: number; questions: number }; errors?: string[]; parseError?: string } | null>(null);
+
+  // Import (CSV - flashcards)
+  const csvFileRef = useRef<HTMLInputElement>(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvResult, setCsvResult] = useState<{ imported?: number; errors?: string[]; parseError?: string } | null>(null);
+
+  // Import (CSV - questions)
+  const csvQFileRef = useRef<HTMLInputElement>(null);
+  const [csvQImporting, setCsvQImporting] = useState(false);
+  const [csvQResult, setCsvQResult] = useState<{ imported?: number; errors?: string[]; parseError?: string } | null>(null);
 
   async function load() {
     const [t, m, q, f] = await Promise.all([
@@ -130,6 +140,167 @@ export default function AdminTopicPage() {
     setImporting(false);
     setImportResult(data);
     if (data.imported) await load();
+  }
+
+  function parseCsvFlashcards(text: string): { rows: { front_text: string; back_text: string }[]; errors: string[] } {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return { rows: [], errors: ['CSV must have a header row and at least one data row.'] };
+
+    // Parse a single CSV line respecting quoted fields
+    function parseLine(line: string): string[] {
+      const fields: string[] = [];
+      let cur = '';
+      let inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuote) {
+          if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+          else if (ch === '"') { inQuote = false; }
+          else { cur += ch; }
+        } else {
+          if (ch === '"') { inQuote = true; }
+          else if (ch === ',') { fields.push(cur.trim()); cur = ''; }
+          else { cur += ch; }
+        }
+      }
+      fields.push(cur.trim());
+      return fields;
+    }
+
+    const header = parseLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, ' ').trim());
+    const qIdx = header.findIndex(h => h === 'question');
+    const aIdx = header.findIndex(h => h === 'answer');
+
+    if (qIdx === -1 || aIdx === -1) {
+      return { rows: [], errors: ['CSV header must include "Question" and "Answer" columns.'] };
+    }
+
+    const rows: { front_text: string; back_text: string }[] = [];
+    const errors: string[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseLine(lines[i]);
+      const q = cols[qIdx]?.trim();
+      const a = cols[aIdx]?.trim();
+      if (!q || !a) {
+        errors.push(`Row ${i + 1}: missing Question or Answer — skipped.`);
+        continue;
+      }
+      rows.push({ front_text: q, back_text: a });
+    }
+    return { rows, errors };
+  }
+
+  async function runCsvImport() {
+    setCsvResult(null);
+    const file = csvFileRef.current?.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const { rows, errors } = parseCsvFlashcards(text);
+    if (errors.length > 0 && rows.length === 0) {
+      setCsvResult({ parseError: errors[0] });
+      return;
+    }
+    setCsvImporting(true);
+    const res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic_id: topicId, flashcards: rows }),
+    });
+    const data = await res.json();
+    setCsvImporting(false);
+    setCsvResult({ imported: data.imported?.flashcards, errors: [...errors, ...(data.errors || [])] });
+    if (data.imported?.flashcards > 0) await load();
+    if (csvFileRef.current) csvFileRef.current.value = '';
+  }
+
+  async function runCsvQImport() {
+    setCsvQResult(null);
+    const file = csvQFileRef.current?.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
+      setCsvQResult({ parseError: 'CSV must have a header row and at least one data row.' });
+      return;
+    }
+
+    function parseLine(line: string): string[] {
+      const fields: string[] = [];
+      let cur = '';
+      let inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuote) {
+          if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+          else if (ch === '"') { inQuote = false; }
+          else { cur += ch; }
+        } else {
+          if (ch === '"') { inQuote = true; }
+          else if (ch === ',') { fields.push(cur.trim()); cur = ''; }
+          else { cur += ch; }
+        }
+      }
+      fields.push(cur.trim());
+      return fields;
+    }
+
+    const header = parseLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, ' ').trim());
+    const idx = {
+      q:       header.findIndex(h => h === 'question'),
+      a:       header.findIndex(h => h === 'answer a'),
+      b:       header.findIndex(h => h === 'answer b'),
+      c:       header.findIndex(h => h === 'answer c'),
+      d:       header.findIndex(h => h === 'answer d'),
+      correct: header.findIndex(h => h === 'correct answer'),
+    };
+
+    const missing = Object.entries(idx).filter(([, v]) => v === -1).map(([k]) => k === 'q' ? 'Question' : k === 'correct' ? 'Correct Answer' : `Answer ${k.toUpperCase()}`);
+    if (missing.length > 0) {
+      setCsvQResult({ parseError: `CSV is missing required column(s): ${missing.join(', ')}.` });
+      return;
+    }
+
+    const letterMap: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 };
+    const rows: { stem: string; options: string[]; correct_index: number }[] = [];
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseLine(lines[i]);
+      const stem    = cols[idx.q]?.trim();
+      const optA    = cols[idx.a]?.trim();
+      const optB    = cols[idx.b]?.trim();
+      const optC    = cols[idx.c]?.trim();
+      const optD    = cols[idx.d]?.trim();
+      const correct = cols[idx.correct]?.trim().toLowerCase();
+
+      if (!stem || !optA || !optB || !optC || !optD) {
+        errors.push(`Row ${i + 1}: missing question or one of the answer options — skipped.`);
+        continue;
+      }
+      if (!(correct in letterMap)) {
+        errors.push(`Row ${i + 1}: Correct Answer must be A, B, C, or D (got "${cols[idx.correct]}") — skipped.`);
+        continue;
+      }
+      rows.push({ stem, options: [optA, optB, optC, optD], correct_index: letterMap[correct] });
+    }
+
+    if (rows.length === 0) {
+      setCsvQResult({ parseError: errors[0] ?? 'No valid rows found.', errors });
+      return;
+    }
+
+    setCsvQImporting(true);
+    const res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic_id: topicId, questions: rows }),
+    });
+    const data = await res.json();
+    setCsvQImporting(false);
+    setCsvQResult({ imported: data.imported?.questions, errors: [...errors, ...(data.errors || [])] });
+    if (data.imported?.questions > 0) await load();
+    if (csvQFileRef.current) csvQFileRef.current.value = '';
   }
 
   if (!topic) return <div className="p-8 font-sans text-ink-3">Loading…</div>;
@@ -431,6 +602,100 @@ export default function AdminTopicPage() {
                   <p className="font-medium text-ink mb-1">Skipped items:</p>
                   <ul className="list-disc list-inside space-y-0.5 text-ink-3 text-xs">
                     {importResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CSV import */}
+          <div className="bg-paper-2 border border-rule rounded-xl p-5 mb-4">
+            <h3 className="font-sans font-semibold text-ink text-sm mb-1">Import Flashcards from CSV</h3>
+            <p className="font-sans text-xs text-ink-4 mb-4">
+              Upload a CSV file with columns{' '}
+              <code className="font-mono bg-paper-3 px-1 rounded">Question Number</code>,{' '}
+              <code className="font-mono bg-paper-3 px-1 rounded">Question</code>, and{' '}
+              <code className="font-mono bg-paper-3 px-1 rounded">Answer</code>.
+              Each row becomes a flashcard (Question → front, Answer → back).
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                ref={csvFileRef}
+                onChange={() => setCsvResult(null)}
+                className="text-sm font-sans text-ink-3 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-ink file:text-paper file:text-xs file:cursor-pointer"
+              />
+              <button
+                onClick={runCsvImport}
+                disabled={csvImporting}
+                className="px-5 py-2 bg-ink text-paper rounded-lg text-sm font-sans hover:bg-ink-2 transition-colors disabled:opacity-50"
+              >
+                {csvImporting ? 'Importing…' : 'Import CSV'}
+              </button>
+            </div>
+          </div>
+
+          {csvResult && (
+            <div className={`rounded-xl p-4 text-sm font-sans border mb-6 ${csvResult.parseError || (csvResult.errors && csvResult.errors.length > 0 && !csvResult.imported) ? 'bg-crimson/5 border-crimson/20 text-crimson' : 'bg-sage-light border-sage/20'}`}>
+              {csvResult.parseError && <p>{csvResult.parseError}</p>}
+              {csvResult.imported !== undefined && (
+                <p className="text-sage font-medium">
+                  Imported {csvResult.imported} flashcard{csvResult.imported !== 1 ? 's' : ''} from CSV.
+                </p>
+              )}
+              {csvResult.errors && csvResult.errors.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-medium text-ink mb-1">Skipped rows:</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-ink-3 text-xs">
+                    {csvResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CSV questions import */}
+          <div className="bg-paper-2 border border-rule rounded-xl p-5 mb-4">
+            <h3 className="font-sans font-semibold text-ink text-sm mb-1">Import Questions from CSV</h3>
+            <p className="font-sans text-xs text-ink-4 mb-4">
+              Upload a CSV file with columns{' '}
+              {['Question Number', 'Question', 'Answer A', 'Answer B', 'Answer C', 'Answer D', 'Correct Answer'].map((col, i) => (
+                <span key={col}><code className="font-mono bg-paper-3 px-1 rounded">{col}</code>{i < 6 ? ', ' : '.'}</span>
+              ))}{' '}
+              <span className="block mt-1">Correct Answer must be A, B, C, or D.</span>
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                ref={csvQFileRef}
+                onChange={() => setCsvQResult(null)}
+                className="text-sm font-sans text-ink-3 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-ink file:text-paper file:text-xs file:cursor-pointer"
+              />
+              <button
+                onClick={runCsvQImport}
+                disabled={csvQImporting}
+                className="px-5 py-2 bg-ink text-paper rounded-lg text-sm font-sans hover:bg-ink-2 transition-colors disabled:opacity-50"
+              >
+                {csvQImporting ? 'Importing…' : 'Import CSV'}
+              </button>
+            </div>
+          </div>
+
+          {csvQResult && (
+            <div className={`rounded-xl p-4 text-sm font-sans border ${csvQResult.parseError || (csvQResult.errors && csvQResult.errors.length > 0 && !csvQResult.imported) ? 'bg-crimson/5 border-crimson/20 text-crimson' : 'bg-sage-light border-sage/20'}`}>
+              {csvQResult.parseError && <p>{csvQResult.parseError}</p>}
+              {csvQResult.imported !== undefined && (
+                <p className="text-sage font-medium">
+                  Imported {csvQResult.imported} question{csvQResult.imported !== 1 ? 's' : ''} from CSV.
+                </p>
+              )}
+              {csvQResult.errors && csvQResult.errors.length > 0 && (
+                <div className="mt-2">
+                  <p className="font-medium text-ink mb-1">Skipped rows:</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-ink-3 text-xs">
+                    {csvQResult.errors.map((e, i) => <li key={i}>{e}</li>)}
                   </ul>
                 </div>
               )}

@@ -47,9 +47,24 @@ export default function AdminUsersPage() {
     await load();
   }
 
+  const [resetting, setResetting] = useState<string | null>(null); // userId or 'all'
+
   async function resetProgress(u: any) {
     if (!confirm(`Reset all progress for ${u.display_name}? This will clear their session progress, quiz attempts, and flashcard ratings.`)) return;
-    await fetch(`/api/progress?userId=${u.id}`, { method: 'DELETE' });
+    setResetting(u.id);
+    try {
+      const res = await fetch(`/api/progress?userId=${u.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(`Error: ${data.error || 'Failed to reset progress'}`);
+      } else {
+        alert(`Progress reset for ${u.display_name}.`);
+      }
+    } catch {
+      alert('Network error — could not reset progress.');
+    } finally {
+      setResetting(null);
+    }
     await load();
   }
 
@@ -57,7 +72,22 @@ export default function AdminUsersPage() {
     const nonAdmins = users.filter(u => u.role !== 'admin');
     if (nonAdmins.length === 0) return;
     if (!confirm(`Reset sessions for ALL ${nonAdmins.length} student(s)? This will clear all session progress, quiz attempts, and flashcard ratings.`)) return;
-    await Promise.all(nonAdmins.map(u => fetch(`/api/progress?userId=${u.id}`, { method: 'DELETE' })));
+    setResetting('all');
+    try {
+      const results = await Promise.all(
+        nonAdmins.map(u => fetch(`/api/progress?userId=${u.id}`, { method: 'DELETE' }).then(r => r.json()))
+      );
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) {
+        alert(`Some resets failed: ${errors.map((e: any) => e.error).join(', ')}`);
+      } else {
+        alert(`All sessions reset for ${nonAdmins.length} student(s).`);
+      }
+    } catch {
+      alert('Network error — could not reset sessions.');
+    } finally {
+      setResetting(null);
+    }
     await load();
   }
 
@@ -76,8 +106,8 @@ export default function AdminUsersPage() {
 
       {/* Bulk actions */}
       <div className="flex justify-end mb-3">
-        <button onClick={resetAllProgress} className="font-mono text-xs text-crimson hover:text-crimson/70 border border-crimson/30 hover:bg-crimson/5 px-3 py-1.5 rounded transition-colors">
-          Reset All Sessions
+        <button onClick={resetAllProgress} disabled={resetting !== null} className="font-mono text-xs text-crimson hover:text-crimson/70 border border-crimson/30 hover:bg-crimson/5 px-3 py-1.5 rounded transition-colors disabled:opacity-50">
+          {resetting === 'all' ? 'Resetting…' : 'Reset All Sessions'}
         </button>
       </div>
 
@@ -114,8 +144,8 @@ export default function AdminUsersPage() {
                     Reset PW
                   </button>
                   {u.role !== 'admin' && (
-                    <button onClick={() => resetProgress(u)} className="font-mono text-xs text-crimson hover:text-crimson/70 px-2 py-1 hover:bg-crimson/5 rounded">
-                      Reset Progress
+                    <button onClick={() => resetProgress(u)} disabled={resetting !== null} className="font-mono text-xs text-crimson hover:text-crimson/70 px-2 py-1 hover:bg-crimson/5 rounded disabled:opacity-50">
+                      {resetting === u.id ? 'Resetting…' : 'Reset Progress'}
                     </button>
                   )}
                 </td>
