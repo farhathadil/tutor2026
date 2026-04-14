@@ -596,7 +596,7 @@ function SlideshowCard({ material, onOpen }: { material: Material; onOpen: () =>
         <span className="font-mono text-xs text-ink-4 ml-auto">{material.slide_count ?? 0} slides</span>
       </div>
       <div className="p-4 flex items-center justify-between">
-        <p className="font-sans text-xs text-ink-4">Full-screen slideshow · 30 s timer per slide</p>
+        <p className="font-sans text-xs text-ink-4">Full-screen slideshow · 20 s timer per slide</p>
         <button
           onClick={onOpen}
           className="px-5 py-2 bg-ink text-paper rounded-lg font-sans text-sm hover:bg-ink-2 transition-colors"
@@ -618,7 +618,7 @@ function SlideshowViewer({
   const [slides, setSlides] = useState<SlideshowSlide[]>([]);
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(20);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -630,7 +630,7 @@ function SlideshowViewer({
   // Reset and start countdown each time slide changes
   useEffect(() => {
     if (slides.length === 0) return;
-    setTimeLeft(30);
+    setTimeLeft(20);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
@@ -674,7 +674,7 @@ function SlideshowViewer({
   const expired = timeLeft === 0;
 
   // Timer ring: stroke-dasharray 100, stroke-dashoffset = 100 - (timeLeft/30)*100
-  const pct = (timeLeft / 30) * 100;
+  const pct = (timeLeft / 20) * 100;
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col select-none">
