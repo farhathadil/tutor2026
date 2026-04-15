@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const db = getDb();
 
   // Calculate next_due_at based on rating
-  const daysMap: Record<string, number> = { easy: 14, medium: 7, hard: 0 };
+  const daysMap: Record<string, number> = { correct: 7, wrong: 0, easy: 14, medium: 7, hard: 0 };
   const days = daysMap[rating] ?? 7;
   const nextDue = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 

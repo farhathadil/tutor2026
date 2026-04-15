@@ -56,6 +56,7 @@ export default async function SessionPage({ params }: { params: { topicId: strin
       initialProgress={progress}
       latestRatings={latestRatings}
       userId={session.user.id}
+      userRole={session.user.role}
       gateEnabled={!!topic.gate_enabled}
       gateMinScore={topic.gate_min_score || 60}
     />

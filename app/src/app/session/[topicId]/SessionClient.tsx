@@ -16,13 +16,14 @@ interface Props {
   initialProgress: Progress | null;
   latestRatings: Record<string, string>;
   userId: string;
+  userRole: string;
   gateEnabled: boolean;
   gateMinScore: number;
 }
 
 export default function SessionClient({
   topic, materials, questions, flashcards,
-  initialProgress, latestRatings, userId, gateEnabled, gateMinScore,
+  initialProgress, latestRatings, userId, userRole, gateEnabled, gateMinScore,
 }: Props) {
   const [stage, setStage] = useState(initialProgress?.current_stage || 1);
   const [completedStages, setCompletedStages] = useState<number[]>(initialProgress?.completed_stages || []);
@@ -96,6 +97,7 @@ export default function SessionClient({
             materials={stageMaterials(1)}
             onComplete={() => completeStage(1)}
             isDone={completedStages.includes(1)}
+            bypassLock={userRole === 'test'}
           />
         )}
         {stage === 2 && (
@@ -141,7 +143,7 @@ export default function SessionClient({
 }
 
 // ─── Stage 1: Introduce (Slides + Audio + Video + Slideshows) ────────────────
-function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onComplete: () => void; isDone: boolean }) {
+function Stage1({ materials, onComplete, isDone, bypassLock }: { materials: Material[]; onComplete: () => void; isDone: boolean; bypassLock?: boolean }) {
   const slides = materials.filter(m => m.type === 'slide');
   const audios = materials.filter(m => m.type === 'audio');
   const videos = materials.filter(m => m.type === 'video');
@@ -152,7 +154,7 @@ function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onCo
 
   // Pre-fill as reviewed if the stage is already complete
   const [reviewed, setReviewed] = useState<Set<string>>(
-    () => new Set(isDone ? trackable : [])
+    () => new Set(isDone || bypassLock ? trackable : [])
   );
   const [openSlideshow, setOpenSlideshow] = useState<Material | null>(null);
 
@@ -194,7 +196,7 @@ function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onCo
       <CompleteButton
         onComplete={onComplete}
         isDone={isDone}
-        locked={!allReviewed}
+        locked={!bypassLock && !allReviewed}
         label="I've reviewed the slides, videos & audio →"
       />
 
@@ -203,6 +205,7 @@ function Stage1({ materials, onComplete, isDone }: { materials: Material[]; onCo
           material={openSlideshow}
           onClose={() => setOpenSlideshow(null)}
           onFinish={() => markReviewed(openSlideshow.id)}
+          bypassTimer={bypassLock}
         />
       )}
     </div>
@@ -240,11 +243,11 @@ function Stage3({ flashcards, latestRatings, onComplete, isDone, shuffle }: {
   isDone: boolean;
   shuffle: <T>(a: T[]) => T[];
 }) {
-  const [deck, setDeck] = useState<Flashcard[]>(() => shuffle(flashcards));
+  const [deck] = useState<Flashcard[]>(() => shuffle(flashcards));
   const [current, setCurrent] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [ratings, setRatings] = useState<Record<string, string>>({ ...latestRatings });
-  const [sessionRatings, setSessionRatings] = useState<Record<string, string>>({});
+  const [correctCount, setCorrectCount] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
   const [done, setDone] = useState(false);
 
   if (flashcards.length === 0) return (
@@ -257,34 +260,28 @@ function Stage3({ flashcards, latestRatings, onComplete, isDone, shuffle }: {
 
   const card = deck[current];
 
-  async function rate(rating: string) {
+  async function rate(rating: 'correct' | 'wrong') {
     await fetch('/api/flashcard-rating', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ flashcard_id: card.id, rating }),
     });
-    const newSessionRatings = { ...sessionRatings, [card.id]: rating };
-    setSessionRatings(newSessionRatings);
-    setRatings(prev => ({ ...prev, [card.id]: rating }));
+
+    if (rating === 'correct') setCorrectCount(c => c + 1);
+    else setWrongCount(c => c + 1);
+
     setFlipped(false);
 
-    // "Hard" cards get re-added to end of deck
-    if (rating === 'hard') {
-      setDeck(prev => [...prev, card]);
-    }
-
-    if (current + 1 >= deck.length && rating !== 'hard') {
+    if (current + 1 >= deck.length) {
       setDone(true);
     } else {
       setTimeout(() => setCurrent(c => c + 1), 100);
     }
   }
 
-  const ratedCount = Object.keys(sessionRatings).length;
-
   return (
     <div>
-      <StageHeader n={3} icon="🧠" label="Recall" desc="Flip each card and rate how well you knew it." isDone={isDone} />
+      <StageHeader n={3} icon="🧠" label="Recall" desc="Flip each card and mark whether you got it right." isDone={isDone} />
 
       <div className="mb-4 flex items-center justify-between">
         <span className="font-mono text-xs text-ink-4">{Math.min(current + 1, deck.length)}/{deck.length} cards</span>
@@ -298,8 +295,17 @@ function Stage3({ flashcards, latestRatings, onComplete, isDone, shuffle }: {
       {done ? (
         <div className="text-center py-12 bg-sage-light border border-sage/30 rounded-2xl">
           <div className="text-4xl mb-3">🎉</div>
-          <h3 className="font-serif text-xl font-semibold text-ink mb-2">All cards reviewed!</h3>
-          <p className="font-sans text-sm text-ink-3 mb-6">{ratedCount} cards rated this session</p>
+          <h3 className="font-serif text-xl font-semibold text-ink mb-2">All cards done!</h3>
+          <div className="flex justify-center gap-6 mb-6">
+            <div className="flex flex-col items-center">
+              <span className="font-serif text-3xl font-bold text-sage">{correctCount}</span>
+              <span className="font-mono text-xs text-ink-4 mt-1 uppercase tracking-wider">Correct</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-serif text-3xl font-bold text-crimson">{wrongCount}</span>
+              <span className="font-mono text-xs text-ink-4 mt-1 uppercase tracking-wider">Wrong</span>
+            </div>
+          </div>
           <CompleteButton onComplete={onComplete} isDone={isDone} label="Continue to Quiz →" />
         </div>
       ) : (
@@ -321,19 +327,15 @@ function Stage3({ flashcards, latestRatings, onComplete, isDone, shuffle }: {
 
           {flipped && (
             <div className="mt-6">
-              <p className="font-mono text-xs text-ink-4 text-center mb-3 uppercase tracking-wider">How well did you know this?</p>
-              <div className="grid grid-cols-3 gap-3">
-                <button onClick={() => rate('hard')}
+              <p className="font-mono text-xs text-ink-4 text-center mb-3 uppercase tracking-wider">Did you get it right?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => rate('wrong')}
                   className="py-3 rounded-xl bg-crimson-light text-crimson font-sans font-medium text-sm hover:bg-crimson hover:text-white transition-colors">
-                  😓 Hard
+                  ✗ Wrong
                 </button>
-                <button onClick={() => rate('medium')}
-                  className="py-3 rounded-xl bg-gold/10 text-gold font-sans font-medium text-sm hover:bg-gold hover:text-white transition-colors">
-                  🤔 Medium
-                </button>
-                <button onClick={() => rate('easy')}
+                <button onClick={() => rate('correct')}
                   className="py-3 rounded-xl bg-sage-light text-sage font-sans font-medium text-sm hover:bg-sage hover:text-white transition-colors">
-                  😊 Easy
+                  ✓ Correct
                 </button>
               </div>
             </div>
@@ -632,11 +634,12 @@ function SlideshowCard({ material, reviewed, onOpen }: { material: Material; rev
 }
 
 function SlideshowViewer({
-  material, onClose, onFinish,
+  material, onClose, onFinish, bypassTimer,
 }: {
   material: Material;
   onClose: () => void;
   onFinish: () => void;
+  bypassTimer?: boolean;
 }) {
   const [slides, setSlides] = useState<SlideshowSlide[]>([]);
   const [loading, setLoading] = useState(true);
@@ -650,9 +653,9 @@ function SlideshowViewer({
       .then((data: SlideshowSlide[]) => { setSlides(data); setLoading(false); });
   }, [material.id]);
 
-  // Reset and start countdown each time slide changes
+  // Reset and start countdown each time slide changes (skipped for test user)
   useEffect(() => {
-    if (slides.length === 0) return;
+    if (bypassTimer || slides.length === 0) return;
     setTimeLeft(15);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
@@ -662,7 +665,7 @@ function SlideshowViewer({
       });
     }, 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [current, slides.length]);
+  }, [current, slides.length, bypassTimer]);
 
   // Close on Escape key
   useEffect(() => {
@@ -694,7 +697,7 @@ function SlideshowViewer({
 
   const slide = slides[current];
   const isLast = current === slides.length - 1;
-  const expired = timeLeft === 0;
+  const expired = bypassTimer || timeLeft === 0;
 
   // Timer ring: stroke-dasharray 100, stroke-dashoffset = 100 - (timeLeft/30)*100
   const pct = (timeLeft / 15) * 100;
@@ -727,24 +730,26 @@ function SlideshowViewer({
           />
         )}
 
-        {/* Countdown timer — lower-right corner */}
-        <div className="absolute bottom-4 right-4 w-11 h-11">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-            <circle
-              cx="18" cy="18" r="15" fill="none"
-              stroke={expired ? 'rgb(var(--gold))' : 'rgba(255,255,255,0.5)'}
-              strokeWidth="3"
-              strokeDasharray="94.25"
-              strokeDashoffset={94.25 - (pct / 100) * 94.25}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 0.9s linear, stroke 0.3s' }}
-            />
-          </svg>
-          <span className={`absolute inset-0 flex items-center justify-center font-mono text-xs font-bold ${expired ? 'text-gold' : 'text-white/60'}`}>
-            {expired ? '!' : timeLeft}
-          </span>
-        </div>
+        {/* Countdown timer — lower-right corner (hidden for test user) */}
+        {!bypassTimer && (
+          <div className="absolute bottom-4 right-4 w-11 h-11">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+              <circle
+                cx="18" cy="18" r="15" fill="none"
+                stroke={expired ? 'rgb(var(--gold))' : 'rgba(255,255,255,0.5)'}
+                strokeWidth="3"
+                strokeDasharray="94.25"
+                strokeDashoffset={94.25 - (pct / 100) * 94.25}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dashoffset 0.9s linear, stroke 0.3s' }}
+              />
+            </svg>
+            <span className={`absolute inset-0 flex items-center justify-center font-mono text-xs font-bold ${expired ? 'text-gold' : 'text-white/60'}`}>
+              {expired ? '!' : timeLeft}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Navigation footer */}
