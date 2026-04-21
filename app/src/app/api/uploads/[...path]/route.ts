@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import path from 'path';
 import fs from 'fs';
+import { Readable } from 'stream';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/home/faa/tutor/uploads';
 
@@ -23,16 +24,11 @@ const MIME: Record<string, string> = {
 };
 
 function nodeStreamToWeb(nodeStream: fs.ReadStream): ReadableStream<Uint8Array> {
-  return new ReadableStream({
-    start(controller) {
-      nodeStream.on('data', (chunk) => controller.enqueue(chunk as Uint8Array));
-      nodeStream.on('end', () => controller.close());
-      nodeStream.on('error', (err) => controller.error(err));
-    },
-    cancel() {
-      nodeStream.destroy();
-    },
-  });
+  // Readable.toWeb() properly handles backpressure — the previous implementation
+  // used 'data' events which put the stream in flowing mode, causing all chunks
+  // to pile up in the internal queue regardless of how fast the client consumed them.
+  // For large video/audio files this stalled or dropped the connection mid-playback.
+  return Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
 }
 
 export async function GET(req: Request, { params }: { params: { path: string[] } }) {
